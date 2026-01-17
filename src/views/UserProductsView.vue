@@ -101,7 +101,7 @@ const products = ref<Product[]>([
     name: 'Premium Leather Wallet',
     description: 'Handcrafted Italian leather wallet with RFID protection',
     image: 'https://images.unsplash.com/photo-1627123424574-724758594e93?w=400&h=300&fit=crop',
-    category: 'Accessories',
+    category: 'Hàng Tiêu Dùng',
     inStock: true,
   },
   {
@@ -109,7 +109,7 @@ const products = ref<Product[]>([
     name: 'Luxury Watch Collection',
     description: 'Swiss-made automatic watch with sapphire crystal',
     image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&h=300&fit=crop',
-    category: 'Watches',
+    category: 'Hàng Kỹ Thuật',
     inStock: true,
   },
   {
@@ -117,7 +117,7 @@ const products = ref<Product[]>([
     name: 'Designer Sunglasses',
     description: 'Polarized lenses with titanium frame lorem ibsum',
     image: 'https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=400&h=300&fit=crop',
-    category: 'Eyewear',
+    category: 'Hàng Kỹ Thuật',
     inStock: true,
   },
   {
@@ -125,7 +125,7 @@ const products = ref<Product[]>([
     name: 'Premium Briefcase',
     description: 'Full-grain leather professional briefcase',
     image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=300&fit=crop',
-    category: 'Bags',
+    category: 'Hàng Tiêu Dùng',
     inStock: false,
   },
   {
@@ -133,7 +133,7 @@ const products = ref<Product[]>([
     name: 'Silk Tie Collection',
     description: 'Hand-rolled 100% silk ties',
     image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=300&fit=crop',
-    category: 'Accessories',
+    category: 'Hàng Kỹ Thuật',
     inStock: true,
   },
   {
@@ -141,7 +141,7 @@ const products = ref<Product[]>([
     name: 'Gold Cufflinks',
     description: '18K gold-plated stainless steel cufflinks',
     image: 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=400&h=300&fit=crop',
-    category: 'Jewelry',
+    category: 'Hàng Tiêu Dùng',
     inStock: true,
   }
 ])
