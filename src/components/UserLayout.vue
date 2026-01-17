@@ -2,7 +2,7 @@
   <div class="min-h-screen flex flex-col" style="background: linear-gradient(180deg, #f5f5f5 0%, #ffffff 100%);">
     <!-- Header -->
     <header class="sticky top-0 z-50 shadow-md" style="background: linear-gradient(135deg, #0F2854 0%, #1C4D8D 100%);">
-      <div class="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
+      <div class="container mx-auto px-4 sm:px-6 lg:px-8 max-w-8xl">
         <div class="flex justify-between items-center h-16">
           <!-- Logo -->
           <div class="flex items-center gap-3 shrink-0">
@@ -104,7 +104,7 @@
 
     <!-- Mobile Navigation -->
     <nav class="lg:hidden sticky top-16 z-40 bg-white border-b shadow-sm">
-      <div class="container mx-auto px-4 flex gap-1 overflow-x-auto py-2">
+      <div class="container mx-auto px-4 max-w-8xl flex gap-1 overflow-x-auto py-2">
         <router-link 
           v-for="link in navLinks" 
           :key="link.path"
@@ -122,7 +122,7 @@
     </nav>
 
     <!-- Main Content -->
-    <main class="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <main class="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 max-w-8xl py-6">
       <slot />
     </main>
 
@@ -171,9 +171,9 @@ const userInitial = computed(() => {
 })
 
 const navLinks = [
-  { path: '/user/dashboard', label: 'Dashboard', icon: Home },
-  { path: '/user/products', label: 'Products', icon: ShoppingBag },
-  { path: '/user/orders', label: 'My Orders', icon: List }
+  { path: '/user/dashboard', label: 'Trang Chủ', icon: Home },
+  { path: '/user/products', label: 'Vật Tư', icon: ShoppingBag },
+  { path: '/user/orders', label: 'Đơn Đặt Hàng', icon: List }
 ]
 
 const handleLogout = () => {
@@ -187,10 +187,6 @@ const handleLogout = () => {
   font-family: 'Rubik', sans-serif;
 }
 
-/* Dropdown Menu Animations */
-.dropdown-animate {
-  /* animation: dropdownSlideIn 0.2s ease-out; */
-}
 
 @keyframes dropdownSlideIn {
   from {

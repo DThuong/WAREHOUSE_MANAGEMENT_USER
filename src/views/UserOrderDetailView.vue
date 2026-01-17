@@ -2,25 +2,27 @@
   <UserLayout>
     <div class="order-detail-page animate-fade-in">
       <div v-if="!order" class="loading-state">
-        <Loader2 class="h-12 w-12 animate-spin text-muted-foreground" />
-        <p>Loading order details...</p>
+        <Loader2 class="h-12 w-12 animate-spin text-blue-500" />
+        <p class="text-blue-600">Đang tải...</p>
       </div>
 
       <div v-else class="space-y-6">
         <!-- Header -->
-        <Card class="detail-header">
+        <Card class="border-none shadow-xl" style="background: linear-gradient(135deg, #E8F4FA 0%, #ffffff 100%);">
           <CardContent class="pt-6">
             <div class="header-top">
               <Button 
                 variant="ghost"
+                class="cursor-pointer text-gray-600 hover:text-blue-900 hover:bg-blue-300 transition-all duration-200 bg-blue-200"
                 @click="router.push('/user/orders')"
               >
-                <ArrowLeft class="mr-2 h-4 w-4" />
-                Back to Orders
+                <ArrowLeft class="h-4 w-4" />
+                Quay lại Orders
               </Button>
               <Badge 
                 :variant="getStatusVariant(order.status)"
-                class="status-tag-large"
+                class="border-none px-4 py-2 shadow-lg text-center status-tag-large"
+                :style="getStatusStyle(order.status)"
               >
                 {{ getStatusLabel(order.status) }}
               </Badge>
@@ -29,25 +31,26 @@
             <div class="header-main">
               <div>
                 <h1 class="order-title">Order {{ order.orderNumber }}</h1>
-                <p class="order-meta">Placed on {{ formatDate(order.date) }}</p>
+                <p class="order-meta">Ngày Tạo: {{ formatDate(order.date) }}</p>
               </div>
 
               <Button 
                 v-if="order.status === 'pending'"
-                variant="destructive"
+                variant="secondary"
+                class="cursor-pointer transition-all duration-200 hover:scale-105 cancel-btn"
                 @click="handleCancelOrder"
               >
                 <X class="mr-2 h-4 w-4" />
-                Cancel Order
+                Hủy Order
               </Button>
             </div>
           </CardContent>
         </Card>
 
         <!-- Order Status Timeline -->
-        <Card class="timeline-card">
+        <Card class="timeline-card border-none shadow-xl" style="background: linear-gradient(135deg, #F0F9FF 0%, #ffffff 100%);">
           <CardHeader>
-            <CardTitle>Order Status</CardTitle>
+            <CardTitle class="text-blue-900">Trạng Thái Đơn Hàng</CardTitle>
           </CardHeader>
           <CardContent>
             <div class="timeline">
@@ -70,9 +73,9 @@
         </Card>
 
         <!-- Order Items -->
-        <Card class="items-card">
+        <Card class="items-card border-none shadow-xl" style="background: linear-gradient(135deg, #E8F4FA 0%, #ffffff 100%);">
           <CardHeader>
-            <CardTitle>Order Items</CardTitle>
+            <CardTitle class="text-blue-900">Danh Sách Vật Tư</CardTitle>
           </CardHeader>
           <CardContent>
             <div class="items-list">
@@ -90,37 +93,21 @@
                   </Badge>
                 </div>
                 <div class="item-pricing">
-                  <div class="item-quantity">Qty: {{ item.quantity }}</div>
-                  <div class="item-price">${{ item.price.toFixed(2) }}</div>
-                  <div class="item-total">${{ (item.price * item.quantity).toFixed(2) }}</div>
+                  <div class="item-quantity">Số lượng: {{ item.quantity }}</div>
                 </div>
-              </div>
-            </div>
-
-            <Separator class="my-6" />
-
-            <div class="order-summary">
-              <div class="summary-row">
-                <span>Subtotal</span>
-                <span>${{ order.totalAmount.toFixed(2) }}</span>
-              </div>
-              <Separator />
-              <div class="summary-row total">
-                <span>Total</span>
-                <span>${{ order.totalAmount.toFixed(2) }}</span>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <!-- Order Notes -->
-        <Card v-if="order.notes" class="notes-card">
+        <Card v-if="order.notes" class="notes-card border-none shadow-xl" style="background: linear-gradient(135deg, #FEF3C7 0%, #ffffff 100%);">
           <CardHeader>
-            <CardTitle>Special Instructions</CardTitle>
+            <CardTitle class="text-blue-900">Ghi Chú Đặc Biệt</CardTitle>
           </CardHeader>
           <CardContent>
-            <Alert>
-              <AlertDescription>
+            <Alert class="border-yellow-300 bg-yellow-50">
+              <AlertDescription class="text-gray-700">
                 {{ order.notes }}
               </AlertDescription>
             </Alert>
@@ -140,7 +127,6 @@ import UserLayout from '@/components/UserLayout.vue'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { 
   ArrowLeft, 
@@ -148,7 +134,6 @@ import {
   CheckCircle2, 
   Clock, 
   ThumbsUp, 
-  Package, 
   Check,
   Loader2
 } from 'lucide-vue-next'
@@ -164,36 +149,29 @@ const statusTimeline = computed(() => {
   
   return [
     {
-      title: 'Order Placed',
-      description: 'Your order has been submitted',
+      title: 'Đã Đặt',
+      description: 'Đơn hàng đã được đặt thành công',
       icon: CheckCircle2,
       active: true,
       completed: true
     },
     {
-      title: 'Pending Approval',
-      description: 'Waiting for admin approval',
+      title: 'Chờ Duyệt',
+      description: 'Đang chờ phê duyệt',
       icon: Clock,
       active: status === 'pending',
-      completed: ['approved', 'processing', 'completed'].includes(status)
+      completed: ['approved', 'completed'].includes(status)
     },
     {
-      title: 'Approved',
-      description: 'Order has been approved',
+      title: 'Đã Duyệt',
+      description: 'Đơn hàng đã được phê duyệt',
       icon: ThumbsUp,
       active: status === 'approved',
-      completed: ['processing', 'completed'].includes(status)
+      completed: ['completed'].includes(status)
     },
     {
-      title: 'Processing',
-      description: 'Order is being prepared',
-      icon: Package,
-      active: status === 'processing',
-      completed: status === 'completed'
-    },
-    {
-      title: 'Completed',
-      description: 'Order has been delivered',
+      title: 'Hoàn Thành',
+      description: 'Đơn hàng đã được giao',
       icon: Check,
       active: status === 'completed',
       completed: status === 'completed'
@@ -203,7 +181,7 @@ const statusTimeline = computed(() => {
 
 const formatDate = (dateString: string): string => {
   const date = new Date(dateString)
-  return date.toLocaleDateString('en-US', {
+  return date.toLocaleDateString('vi-VN', {
     year: 'numeric',
     month: 'long',
     day: 'numeric'
@@ -212,11 +190,10 @@ const formatDate = (dateString: string): string => {
 
 const getStatusLabel = (status: string): string => {
   const labels: Record<string, string> = {
-    pending: 'Pending',
-    approved: 'Approved',
-    processing: 'Processing',
-    completed: 'Completed',
-    rejected: 'Rejected'
+    pending: 'Chờ Duyệt',
+    approved: 'Đã Duyệt',
+    completed: 'Hoàn Thành',
+    rejected: 'Đã Hủy'
   }
   return labels[status] || status
 }
@@ -225,15 +202,24 @@ const getStatusVariant = (status: string): 'default' | 'secondary' | 'destructiv
   const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
     pending: 'outline',
     approved: 'default',
-    processing: 'secondary',
     completed: 'default',
     rejected: 'destructive'
   }
   return variants[status] || 'default'
 }
 
+const getStatusStyle = (status: string): string => {
+  const styles: Record<string, string> = {
+    pending: 'background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%); color: #92400E; border: 2px solid #F59E0B;',
+    approved: 'background: linear-gradient(135deg, #DBEAFE 0%, #93C5FD 100%); color: #1E40AF; border: 2px solid #3B82F6;',
+    completed: 'background: linear-gradient(135deg, #D1FAE5 0%, #6EE7B7 100%); color: #065F46; border: 2px solid #10B981;',
+    rejected: 'background: linear-gradient(135deg, #FEE2E2 0%, #FCA5A5 100%); color: #991B1B; border: 2px solid #EF4444;'
+  }
+  return styles[status] || ''
+}
+
 const handleCancelOrder = () => {
-  if (confirm('Are you sure you want to cancel this order?')) {
+  if (confirm('Bạn có chắc chắn muốn hủy đơn hàng này không?')) {
     if (order.value) {
       ordersStore.cancelOrder(order.value.id)
       order.value.status = 'rejected'
@@ -250,7 +236,7 @@ onMounted(() => {
 
 <style scoped>
 .order-detail-page {
-  max-width: 1200px;
+  max-width: 1600px;
   margin: 0 auto;
 }
 
@@ -260,7 +246,6 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   padding: 4rem;
-  color: hsl(var(--muted-foreground));
   gap: 1rem;
 }
 
@@ -273,8 +258,8 @@ onMounted(() => {
 
 .status-tag-large {
   font-size: 1rem;
-  padding: 0.5rem 1rem;
-  font-weight: 600;
+  padding: 0.5rem 1.5rem;
+  font-weight: 700;
 }
 
 .header-main {
@@ -287,7 +272,7 @@ onMounted(() => {
   font-family: 'Rubik', sans-serif;
   font-size: 2rem;
   font-weight: 700;
-  background: var(--gradient-gold);
+  background: linear-gradient(135deg, #0F2854 0%, #1C4D8D 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -296,8 +281,21 @@ onMounted(() => {
 
 .order-meta {
   font-size: 1rem;
-  color: hsl(var(--muted-foreground));
+  color: #64748b;
   margin: 0;
+}
+
+.cancel-btn {
+  background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+  color: white;
+  border: none;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.cancel-btn:hover {
+  background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%);
+  box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
 }
 
 .timeline {
@@ -313,9 +311,11 @@ onMounted(() => {
   top: 50%;
   left: 0;
   right: 0;
-  height: 2px;
-  background: hsl(var(--border));
+  height: 3px;
+  background: linear-gradient(90deg, #BDE8F5 0%, #4988C4 100%);
   transform: translateY(-50%);
+  margin-top: -5px;
+  border-radius: 2px;
 }
 
 .timeline-item {
@@ -329,29 +329,32 @@ onMounted(() => {
 }
 
 .timeline-dot {
-  width: 48px;
-  height: 48px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
-  background: hsl(var(--muted));
+  background: #E2E8F0;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: hsl(var(--muted-foreground));
+  color: #94A3B8;
   transition: all 0.3s ease;
-  border: 2px solid hsl(var(--border));
+  border: 3px solid #CBD5E1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .timeline-item.active .timeline-dot {
-  background: var(--gradient-gold);
+  background: linear-gradient(135deg, #1C4D8D 0%, #4988C4 100%);
   color: white;
-  border-color: transparent;
-  box-shadow: 0 4px 16px rgba(212, 175, 55, 0.4);
+  border-color: #4988C4;
+  box-shadow: 0 8px 24px rgba(73, 136, 196, 0.4);
+  transform: scale(1.1);
 }
 
 .timeline-item.completed .timeline-dot {
-  background: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
-  border-color: transparent;
+  background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+  color: white;
+  border-color: #10B981;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
 .timeline-content {
@@ -360,15 +363,15 @@ onMounted(() => {
 }
 
 .timeline-content h3 {
-  font-size: 0.9375rem;
-  font-weight: 600;
-  color: hsl(var(--foreground));
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1E293B;
   margin: 0 0 0.25rem 0;
 }
 
 .timeline-content p {
-  font-size: 0.8125rem;
-  color: hsl(var(--muted-foreground));
+  font-size: 0.875rem;
+  color: #64748B;
   margin: 0;
 }
 
@@ -376,33 +379,35 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  margin-bottom: 2rem;
 }
 
 .order-item {
   display: flex;
   gap: 1.5rem;
   padding: 1.5rem;
-  background: hsl(var(--muted) / 0.5);
-  border-radius: 12px;
+  background: white;
+  border-radius: 16px;
   align-items: center;
   transition: all 0.3s ease;
-  border: 1px solid hsl(var(--border));
+  border: 2px solid #BDE8F5;
+  box-shadow: 0 2px 8px rgba(73, 136, 196, 0.1);
 }
 
 .order-item:hover {
-  background: hsl(var(--muted) / 0.7);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  background: linear-gradient(135deg, #F0F9FF 0%, #ffffff 100%);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(73, 136, 196, 0.2);
+  border-color: #4988C4;
 }
 
 .item-image {
-  width: 100px;
-  height: 100px;
+  width: 120px;
+  height: 120px;
   object-fit: cover;
   border-radius: 12px;
   flex-shrink: 0;
-  border: 1px solid hsl(var(--border));
+  border: 2px solid #BDE8F5;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .item-details {
@@ -411,22 +416,27 @@ onMounted(() => {
 
 .item-name {
   font-family: 'Rubik', sans-serif;
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: hsl(var(--foreground));
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #0F2854;
   margin: 0 0 0.5rem 0;
 }
 
 .item-description {
   font-size: 0.9375rem;
-  color: hsl(var(--muted-foreground));
-  margin: 0 0 0.5rem 0;
+  color: #64748B;
+  margin: 0 0 0.75rem 0;
 }
 
 .item-category {
   text-transform: uppercase;
   letter-spacing: 1px;
   font-size: 0.75rem;
+  font-weight: 600;
+  background: linear-gradient(135deg, #DBEAFE 0%, #93C5FD 100%);
+  color: #1E40AF;
+  border: 1px solid #3B82F6;
+  padding: 0.25rem 0.75rem;
 }
 
 .item-pricing {
@@ -437,49 +447,13 @@ onMounted(() => {
 }
 
 .item-quantity {
-  font-size: 0.875rem;
-  color: hsl(var(--muted-foreground));
-}
-
-.item-price {
   font-size: 1rem;
   font-weight: 600;
-  color: hsl(var(--foreground));
-}
-
-.item-total {
-  font-size: 1.25rem;
-  font-weight: 700;
-  background: var(--gradient-gold);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.order-summary {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.summary-row {
-  display: flex;
-  justify-content: space-between;
-  font-size: 1rem;
-  color: hsl(var(--muted-foreground));
-}
-
-.summary-row.total {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: hsl(var(--foreground));
-}
-
-.summary-row.total span:last-child {
-  background: var(--gradient-gold);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #1C4D8D;
+  background: linear-gradient(135deg, #E8F4FA 0%, #BDE8F5 100%);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: 1px solid #4988C4;
 }
 
 @media (max-width: 1024px) {
@@ -489,9 +463,9 @@ onMounted(() => {
   }
 
   .timeline::before {
-    left: 24px;
+    left: 28px;
     right: auto;
-    width: 2px;
+    width: 3px;
     height: 100%;
     top: 0;
     transform: none;
@@ -527,9 +501,11 @@ onMounted(() => {
 
   .item-pricing {
     text-align: center;
-    flex-direction: row;
-    justify-content: center;
-    gap: 1rem;
+    width: 100%;
+  }
+
+  .item-quantity {
+    width: 100%;
   }
 }
 </style>

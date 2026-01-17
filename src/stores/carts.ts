@@ -5,11 +5,9 @@ export interface Product {
   id: number
   name: string
   description: string
-  price: number
   image: string
   category: string
   inStock: boolean
-  rating: number
 }
 
 export interface CartItem extends Product {
@@ -21,10 +19,6 @@ export const useCartStore = defineStore('cart', () => {
 
   const totalItems = computed(() => {
     return items.value.reduce((sum, item) => sum + item.quantity, 0)
-  })
-
-  const totalPrice = computed(() => {
-    return items.value.reduce((sum, item) => sum + (item.price * item.quantity), 0)
   })
 
   const addToCart = (product: Product, quantity: number = 1) => {
@@ -78,7 +72,6 @@ export const useCartStore = defineStore('cart', () => {
   return {
     items,
     totalItems,
-    totalPrice,
     addToCart,
     removeFromCart,
     updateQuantity,

@@ -9,21 +9,21 @@
           @click="router.push('/user/products')"
         >
           <ArrowLeft class="mr-2 h-4 w-4" />
-          Continue Shopping
+          Tiếp Tục Order Vật Tư
         </Button>
       </div>
 
       <Card v-if="cartStore.items.length === 0" class="empty-cart">
         <CardContent class="text-center p-16">
           <ShoppingCart class="empty-icon h-20 w-20 mx-auto mb-6 text-muted-foreground" />
-          <h2 class="text-2xl font-semibold mb-2">Chưa có vật tư nào dược order !!!</h2>
+          <h2 class="text-2xl font-semibold mb-2">Chưa có đơn đặt hàng nào !!!</h2>
           <p class="text-muted-foreground mb-8">Thêm vật tư vào giỏ hàng</p>
           <Button 
             class="btn-secondary bg-blue-300 cursor-pointer hover:bg-blue-400"
             @click="router.push('/user/products')"
           >
             <ShoppingBag class="mr-2 h-4 w-4" />
-            Browse Products
+            Thêm Vật Tư
           </Button>
         </CardContent>
       </Card>
@@ -68,8 +68,6 @@
                   </Button>
                 </div>
 
-                <div class="item-price">${{ (item.price * item.quantity).toFixed(2) }}</div>
-
                 <Button 
                   variant="ghost"
                   size="icon"
@@ -90,19 +88,19 @@
           </CardHeader>
           <CardContent class="space-y-6">
             <div class="summary-rows space-y-4">
-              <div class="summary-row">
+              <!-- <div class="summary-row">
                 <span>Subtotal</span>
                 <span class="summary-value">${{ cartStore.totalPrice.toFixed(2) }}</span>
-              </div>
+              </div> -->
               <div class="summary-row">
                 <span>Items</span>
                 <span class="summary-value">{{ cartStore.totalItems }}</span>
               </div>
               <Separator />
-              <div class="summary-row total-row">
+              <!-- <div class="summary-row total-row">
                 <span>Total</span>
                 <span class="total-value">${{ cartStore.totalPrice.toFixed(2) }}</span>
-              </div>
+              </div> -->
             </div>
 
             <div class="form-group space-y-2">
@@ -123,7 +121,7 @@
             >
               <Check v-if="!loading" class="mr-2 h-4 w-4" />
               <Loader2 v-else class="mr-2 h-4 w-4 animate-spin" />
-              Place Order
+              Tạo Order
             </Button>
 
             <Alert>
@@ -354,7 +352,7 @@ const placeOrder = async () => {
 }
 
 .btn-checkout {
-  background: var(--gradient-gold);
+  background: #3c48f0;
   color: white;
   border: none;
   padding: 1rem;

@@ -8,7 +8,6 @@ export interface Order {
   date: string
   status: 'pending' | 'approved' | 'processing' | 'completed' | 'rejected'
   items: CartItem[]
-  totalAmount: number
   notes: string
 }
 
@@ -19,7 +18,7 @@ export const useOrdersStore = defineStore('orders', () => {
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000))
     
-    const totalAmount = items.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+    // const totalAmount = items.reduce((sum, item) => sum + (item.price * item.quantity), 0)
     
     const newOrder: Order = {
       id: orders.value.length + 1,
@@ -27,7 +26,6 @@ export const useOrdersStore = defineStore('orders', () => {
       date: new Date().toISOString().split('T')[0] || '',
       status: 'pending',
       items: [...items],
-      totalAmount,
       notes
     }
     
@@ -68,7 +66,6 @@ export const useOrdersStore = defineStore('orders', () => {
           date: '2026-01-15',
           status: 'pending',
           items: [],
-          totalAmount: 1500,
           notes: 'Urgent request'
         },
         {
@@ -77,7 +74,6 @@ export const useOrdersStore = defineStore('orders', () => {
           date: '2026-01-14',
           status: 'approved',
           items: [],
-          totalAmount: 2300,
           notes: ''
         },
         {
@@ -86,7 +82,6 @@ export const useOrdersStore = defineStore('orders', () => {
           date: '2026-01-13',
           status: 'completed',
           items: [],
-          totalAmount: 890,
           notes: ''
         }
       ]

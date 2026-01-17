@@ -4,7 +4,7 @@
       <!-- Welcome Banner -->
       <Card class="welcome-banner overflow-hidden border-none shadow-lg">
         <div class="banner-overlay" />
-        <CardContent class="banner-content relative z-10 p-8">
+        <CardContent class="banner-content relative z-10 p-4">
           <div>
             <h1 class="welcome-title">Xin Chào, {{ authStore.user?.name }}!</h1>
             <p class="welcome-subtitle">Chào mừng đến với kho Dong Yang !!!</p>
@@ -28,7 +28,7 @@
           :key="stat.label"
           class="stat-card cursor-pointer transition-all hover:scale-[1.02] hover:-translate-y-1 border-none shadow-md"
         >
-          <CardContent class="flex items-center gap-5 p-6">
+          <CardContent class="flex items-center gap-5 p-4">
             <div class="stat-icon" :style="{ background: stat.color }">
               <component :is="stat.icon" class="h-7 w-7" />
             </div>
@@ -47,7 +47,7 @@
             <CardTitle class="section-title">Recent Orders</CardTitle>
             <Button 
               variant="ghost"
-              class="hover:bg-blue-50 border bg-blue-100 shadow-2xl cursor-pointer "
+              class="hover:bg-blue-50 border-none bg-blue-100 shadow-2xl cursor-pointer "
               style="color: #1C4D8D; font-weight: 600;"
               @click="router.push('/user/orders')"
             >
@@ -55,13 +55,12 @@
             </Button>
           </div>
         </CardHeader>
-        <CardContent class="pt-6">
+        <CardContent class="pt-4">
           <Table>
             <TableHeader>
               <TableRow class="border-b-2" style="border-color: #BDE8F5;">
                 <TableHead class="font-semibold" style="color: #1C4D8D;">ID Đặt Hàng</TableHead>
                 <TableHead class="font-semibold" style="color: #1C4D8D;">Ngày Đặt</TableHead>
-                <TableHead class="font-semibold" style="color: #1C4D8D;">Tổng Tiền</TableHead>
                 <TableHead class="font-semibold" style="color: #1C4D8D;">Trạng Thái</TableHead>
                 <TableHead class="text-right font-semibold" style="color: #1C4D8D;">Hành Động</TableHead>
               </TableRow>
@@ -71,19 +70,15 @@
                 <TableCell class="font-medium" style="color: #374151;">{{ order.orderNumber }}</TableCell>
                 <TableCell style="color: #6b7280;">{{ order.date }}</TableCell>
                 <TableCell>
-                  <span class="amount font-bold" style="color: #1C4D8D;">${{ order.totalAmount.toFixed(2) }}</span>
-                </TableCell>
-                <TableCell>
                   <Badge :variant="getStatusVariant(order.status)" :class="getStatusClass(order.status)">
                     {{ getStatusLabel(order.status) }}
                   </Badge>
                 </TableCell>
                 <TableCell class="text-right">
                   <Button 
-                    variant="ghost"
+                    variant="secondary"
                     size="sm"
-                    class="hover:bg-blue-50 font-medium"
-                    style="color: #1C4D8D;"
+                    class="hover:opacity-70 bg-blue-950 font-medium cursor-pointer text-white!"
                     @click="viewOrder(order.id)"
                   >
                     Xem
@@ -127,7 +122,6 @@ interface Order {
   id: number
   orderNumber: string
   date: string
-  totalAmount: number
   status: string
 }
 

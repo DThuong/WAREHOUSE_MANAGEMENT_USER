@@ -6,10 +6,10 @@
         <CardHeader class="space-y-4">
           <div>
             <CardTitle class="text-4xl font-bold font-rubik" style="background: linear-gradient(135deg, #1C4D8D 0%, #4988C4 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
-              My Orders
+              Đơn Hàng Của Tôi
             </CardTitle>
             <CardDescription class="text-lg mt-2" style="color: #6b7280;">
-              Track and manage your order requests
+              Quản lý tất cả các đơn đặt hàng của bạn ở đây !!!
             </CardDescription>
           </div>
 
@@ -24,7 +24,7 @@
                   ? 'border-none shadow-md font-semibold text-white' 
                   : 'hover:bg-blue-50 border-2'
               ]"
-              :style="selectedStatus === filter.value ? 'background: linear-gradient(135deg, #1C4D8D 0%, #4988C4 100%);' : 'border-color: #4988C4; color: #1C4D8D;'"
+              :style="selectedStatus === filter.value ? 'background: linear-gradient(135deg, #1C4D8D 0%, #4988C4 100%);' : 'border-color: #4988C4; color: #1C4D8D; cursor: pointer;'"
               @click="selectedStatus = filter.value"
             >
               {{ filter.label }}
@@ -40,8 +40,8 @@
             <Inbox class="h-16 w-16" style="color: #4988C4;" />
           </div>
           <div class="text-center space-y-2">
-            <h2 class="text-2xl font-semibold font-rubik" style="color: #1f2937;">No orders found</h2>
-            <p class="text-lg" style="color: #6b7280;">You haven't placed any orders yet</p>
+            <h2 class="text-2xl font-semibold font-rubik" style="color: #1f2937;">Không Tìm Thấy Order nào !!!</h2>
+            <p class="text-lg" style="color: #6b7280;">Bạn chưa đặt đơn hàng nào</p>
           </div>
           <Button 
             size="lg"
@@ -50,7 +50,7 @@
             @click="router.push('/user/products')"
           >
             <ShoppingBag class="mr-2 h-5 w-5" />
-            Start Shopping
+            Bắt Đầu Đặt Hàng
           </Button>
         </CardContent>
       </Card>
@@ -90,12 +90,6 @@
                 <Package class="h-4 w-4" style="color: #4988C4;" />
                 <span class="font-medium">{{ order.items?.length || 0 }} items</span>
               </div>
-              <div class="flex items-center gap-2" style="color: #6b7280;">
-                <DollarSign class="h-4 w-4" style="color: #4988C4;" />
-                <span class="font-semibold text-lg" style="color: #1C4D8D;">
-                  ${{ order.totalAmount.toFixed(2) }}
-                </span>
-              </div>
             </div>
 
             <!-- Order Notes -->
@@ -110,22 +104,22 @@
             <Button 
               variant="ghost" 
               size="sm"
-              class="hover:bg-blue-50 font-medium"
+              class="hover:bg-blue-200 font-medium cursor-pointer bg-blue-400/20"
               style="color: #1C4D8D;"
             >
-              View Details
-              <ArrowRight class="ml-2 h-4 w-4" />
+              Xem Chi Tiết
+              <ArrowRight class="h-4 w-4" />
             </Button>
             <Button 
               v-if="order.status === 'pending'"
               variant="ghost"
               size="sm"
-              class="hover:bg-red-100 font-medium"
+              class="hover:bg-red-200 font-medium bg-red-100 cursor-pointer"
               style="color: #e05d5d;"
               @click.stop="cancelOrder(order.id)"
             >
-              <X class="mr-2 h-4 w-4" />
-              Cancel
+              <X class="h-4 w-4" />
+              Hủy
             </Button>
           </CardFooter>
         </Card>
@@ -147,7 +141,6 @@ import {
   ShoppingBag, 
   Calendar, 
   Package, 
-  DollarSign, 
   MessageSquare, 
   ArrowRight, 
   X 
