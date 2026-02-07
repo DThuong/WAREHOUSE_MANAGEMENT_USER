@@ -40,12 +40,12 @@
             <Inbox class="h-16 w-16" style="color: #4988C4;" />
           </div>
           <div class="text-center space-y-2">
-            <h2 class="text-2xl font-semibold font-rubik" style="color: #1f2937;">Không Tìm Thấy Order nào !!!</h2>
+            <h2 class="text-2xl font-semibold font-rubik" style="color: #1f2937;">Không Tìm Thấy Đơn Hàng Nào!</h2>
             <p class="text-lg" style="color: #6b7280;">Bạn chưa đặt đơn hàng nào</p>
           </div>
           <Button 
             size="lg"
-            class="mt-4 border-none shadow-lg font-semibold text-white"
+            class="mt-4 border-none shadow-lg font-semibold text-white cursor-pointer"
             style="background: linear-gradient(135deg, #1C4D8D 0%, #4988C4 100%);"
             @click="router.push('/user/products')"
           >
@@ -65,15 +65,15 @@
           @click="viewOrderDetail(order.id)"
         >
           <!-- Order Header -->
-          <CardHeader class="space-y-3 pb-4" style="background: linear-gradient(135deg, #E8F4FA 0%, #ffffff 100%);">
-            <div class="flex justify-between items-start">
-              <div class="space-y-1">
+          <CardHeader class="space-y-3" style="background: linear-gradient(135deg, #E8F4FA 0%, #ffffff 100%);">
+            <div class="flex justify-between items-start p-3">
+              <div class="space-y-2">
                 <CardTitle class="text-xl font-rubik" style="color: #1f2937;">
-                  {{ order.orderNumber }}
+                  Đơn hàng #{{ order.id }}
                 </CardTitle>
                 <CardDescription class="flex items-center gap-1.5">
                   <Calendar class="h-3.5 w-3.5" />
-                  {{ formatDate(order.date) }}
+                  {{ formatDate(order.orderDate) }}
                 </CardDescription>
               </div>
               <Badge :class="getStatusClass(order.status)">
@@ -88,19 +88,18 @@
             <div class="flex items-center gap-6 text-sm">
               <div class="flex items-center gap-2" style="color: #6b7280;">
                 <Package class="h-4 w-4" style="color: #4988C4;" />
-                <span class="font-medium">{{ order.items?.length || 0 }} items</span>
+                <span class="font-medium">{{ order.orderDetails?.length || 0 }} vật tư</span>
               </div>
             </div>
 
-            <!-- Order Notes -->
-            <div v-if="order.notes" class="flex gap-2 p-3 rounded-lg" style="background: linear-gradient(135deg, #E8F4FA 0%, #ffffff 100%); border: 2px solid #BDE8F5;">
-              <MessageSquare class="h-4 w-4 flex-shrink-0 mt-0.5" style="color: #4988C4;" />
-              <p class="text-sm leading-relaxed" style="color: #6b7280;">{{ order.notes }}</p>
+            <!-- Show worker name if available -->
+            <div v-if="order.nameWorker" class="text-sm" style="color: #6b7280;">
+              <span class="font-medium">Người đặt:</span> {{ order.nameWorker }}
             </div>
           </CardContent>
 
           <!-- Order Footer -->
-          <CardFooter class="flex justify-between items-center pt-4 border-t" style="background: linear-gradient(135deg, #E8F4FA 0%, #ffffff 100%); border-color: #BDE8F5;">
+          <CardFooter class="flex justify-between items-center p-3 border-t pt-3!" style="background: linear-gradient(135deg, #E8F4FA 0%, #ffffff 100%); border-color: #BDE8F5;">
             <Button 
               variant="ghost" 
               size="sm"
@@ -108,18 +107,18 @@
               style="color: #1C4D8D;"
             >
               Xem Chi Tiết
-              <ArrowRight class="h-4 w-4" />
+              <ArrowRight class="h-4 w-4 ml-1" />
             </Button>
             <Button 
-              v-if="order.status === 'pending'"
+              v-if="order.status === 'Pending'"
               variant="ghost"
               size="sm"
               class="hover:bg-red-200 font-medium bg-red-100 cursor-pointer"
               style="color: #e05d5d;"
-              @click.stop="cancelOrder(order.id)"
+              @click.stop="deleteOrder(order.id)"
             >
-              <X class="h-4 w-4" />
-              Hủy
+              <Trash2 class="h-4 w-4 mr-1" />
+              Xóa
             </Button>
           </CardFooter>
         </Card>
@@ -131,7 +130,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useOrdersStore } from '@/stores/orders'
+import { useOrderStore } from '@/stores/orderStore'
+import { orderAPI } from '@/services/orderAPI'
+import { toast } from 'sonner'
 import UserLayout from '@/components/UserLayout.vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -141,34 +142,46 @@ import {
   ShoppingBag, 
   Calendar, 
   Package, 
-  MessageSquare, 
   ArrowRight, 
-  X 
+  Trash2
 } from 'lucide-vue-next'
 
+// Define types
+type StatusFilterValue = 'all' | 'pending' | 'approved' | 'completed' | 'rejected'
+
+interface StatusFilter {
+  label: string
+  value: StatusFilterValue
+}
+
 const router = useRouter()
-const ordersStore = useOrdersStore()
+const ordersStore = useOrderStore()
 
-const selectedStatus = ref<string>('all')
+const selectedStatus = ref<StatusFilterValue>('all')
 
-const statusFilters = [
-  { label: 'All', value: 'all' },
-  { label: 'Pending', value: 'pending' },
-  { label: 'Approved', value: 'approved' },
-  { label: 'Completed', value: 'completed' },
-  { label: 'Rejected', value: 'rejected' }
+const statusFilters: StatusFilter[] = [
+  { label: 'Tất Cả', value: 'all' },
+  { label: 'Chờ Duyệt', value: 'pending' },
+  { label: 'Đã Duyệt', value: 'approved' },
+  { label: 'Hoàn Thành', value: 'completed' },
+  { label: 'Đã Hủy', value: 'rejected' }
 ]
 
 const filteredOrders = computed(() => {
-  if (selectedStatus.value === 'all') {
-    return ordersStore.orders
+  let list = ordersStore.orders
+  if (selectedStatus.value !== 'all') {
+    list = list.filter(order =>
+      order.status.toLowerCase() === selectedStatus.value
+    )
   }
-  return ordersStore.orders.filter(order => order.status === selectedStatus.value)
+  return [...list].sort((a, b) => {
+    return new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime()
+  })
 })
 
 const formatDate = (dateString: string): string => {
   const date = new Date(dateString)
-  return date.toLocaleDateString('en-US', {
+  return date.toLocaleDateString('vi-VN', {
     year: 'numeric',
     month: 'long',
     day: 'numeric'
@@ -176,39 +189,64 @@ const formatDate = (dateString: string): string => {
 }
 
 const getStatusLabel = (status: string): string => {
+  const normalizedStatus = status.toLowerCase()
   const labels: Record<string, string> = {
-    pending: 'Pending',
-    approved: 'Approved',
-    processing: 'Processing',
-    completed: 'Completed',
-    rejected: 'Rejected'
+    pending: 'Chờ Duyệt',
+    approved: 'Đã Duyệt',
+    processing: 'Đang Xử Lý',
+    completed: 'Hoàn Thành',
+    rejected: 'Đã Hủy'
   }
-  return labels[status] || status
+  return labels[normalizedStatus] || status
 }
 
 const getStatusClass = (status: string): string => {
+  const normalizedStatus = status.toLowerCase()
   const classes: Record<string, string> = {
-    pending: 'bg-[#E8F4FA] text-[#4988C4] border-[#BDE8F5] font-medium',
-    approved: 'bg-[#D4E8F5] text-[#1C4D8D] border-[#A5D8F0] font-medium',
-    processing: 'bg-[#C3DCF2] text-[#0F2854] border-[#4988C4] font-medium',
-    completed: 'bg-[#D4F4DD] text-[#2D8659] border-[#A8E6CF] font-medium',
-    rejected: 'bg-[#FFE6E6] text-[#E05D5D] border-[#FFB3B3] font-medium'
+    pending: 'bg-[#FEF3C7] text-[#92400E] border-[#F59E0B] font-medium',
+    approved: 'bg-[#DBEAFE] text-[#1E40AF] border-[#3B82F6] font-medium',
+    processing: 'bg-[#E0E7FF] text-[#3730A3] border-[#6366F1] font-medium',
+    completed: 'bg-[#D1FAE5] text-[#065F46] border-[#10B981] font-medium',
+    rejected: 'bg-[#FEE2E2] text-[#991B1B] border-[#EF4444] font-medium'
   }
-  return classes[status] || 'bg-slate-100 text-slate-800'
+  return classes[normalizedStatus] || 'bg-slate-100 text-slate-800'
 }
 
-const viewOrderDetail = (orderId: number) => {
+const viewOrderDetail = (orderId: number): void => {
   router.push(`/user/orders/${orderId}`)
 }
 
-const cancelOrder = async (orderId: number) => {
-  if (confirm('Are you sure you want to cancel this order?')) {
-    ordersStore.cancelOrder(orderId)
+const deleteOrder = async (orderId: number): Promise<void> => {
+  if (!confirm('Bạn có chắc chắn muốn xóa đơn hàng này?')) {
+    return
+  }
+
+  const loadingToast = toast.loading('Đang xóa đơn hàng...')
+
+  try {
+    await orderAPI.delete(orderId)
+    
+    // Remove from store
+    ordersStore.removeOrder(orderId)
+    
+    toast.success('Xóa đơn hàng thành công!', {
+      id: loadingToast,
+    })
+  } catch (error) {
+    console.error('Failed to delete order:', error)
+    const errorMessage = error instanceof Error 
+      ? error.message 
+      : 'Không thể xóa đơn hàng'
+    
+    toast.error('Xóa đơn hàng thất bại', {
+      id: loadingToast,
+      description: errorMessage,
+    })
   }
 }
 
 onMounted(() => {
-  ordersStore.loadOrders()
+  ordersStore.fetchMyOrders()
 })
 </script>
 

@@ -12,6 +12,25 @@
         </div>
       </div>
 
+      <!-- Alert Messages -->
+       <Transition
+        enter-active-class="transition-all duration-300 ease-out"
+        enter-from-class="opacity-0 -translate-y-2"
+        enter-to-class="opacity-100 translate-y-0"
+        leave-active-class="transition-all duration-200 ease-in"
+        leave-from-class="opacity-100 translate-y-0"
+        leave-to-class="opacity-0 -translate-y-2"
+      >
+        <div 
+          v-if="alertMessage" 
+          class="mb-6 p-3 rounded-xl border-2 flex items-center gap-2"
+          :class="alertClasses"
+        >
+          <component :is="alertIcon" class="h-5 w-5 flex-shrink-0" />
+          <p class="text-sm font-medium">{{ alertMessage }}</p>
+        </div>
+      </Transition>
+
       <!-- Form -->
       <form @submit.prevent="handleSignIn" class="flex flex-col space-y-5">
         <!-- Username Field -->
@@ -95,12 +114,12 @@
         <!-- Sign In Button -->
         <Button 
           type="submit"
-          :disabled="loading"
+          :disabled="userStore.authLoading"
           class="w-full h-12 text-base font-semibold rounded-xl shadow-lg border-none transition-all duration-300 hover:scale-[1.02] hover:shadow-xl text-white mt-6"
           style="background: linear-gradient(135deg, #1C4D8D 0%, #4988C4 100%);"
         >
-          <Loader2 v-if="loading" class="mr-2 h-5 w-5 animate-spin" />
-          {{ loading ? 'Đang đăng nhập...' : 'Đăng nhập' }}
+          <Loader2 v-if="userStore.authLoading" class="mr-2 h-5 w-5 animate-spin" />
+          {{ userStore.authLoading ? 'Đang đăng nhập...' : 'Đăng nhập' }}
         </Button>
 
         <!-- Sign Up Link -->
@@ -117,29 +136,67 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
-import { CheckCircle2, XCircle, Loader2 } from 'lucide-vue-next'
+import { CheckCircle2, XCircle, Loader2, AlertCircle, ShieldAlert } from 'lucide-vue-next'
 import logoImg from '../assets/images/newLogo.jpg'
-import { useUserAuthStore } from '@/stores/userAuth'
+import { useUserStore } from '@/stores/userStore'
 
 const router = useRouter()
+const route = useRoute()
+const userStore = useUserStore()
 
 // Form state
 const username = ref<string>('')
 const usernameError = ref<string>('')
 const password = ref<string>('')
-const rememberMe = ref<boolean>(false)
-const loading = ref<boolean>(false)
-
-// Error state
 const passwordError = ref<string>('')
+const rememberMe = ref<boolean>(false)
 
-const authStore = useUserAuthStore()
+// Alert state
+const alertMessage = ref<string>('')
+const alertType = ref<'error' | 'warning' | 'info'>('info')
+const AUTO_DISMISS_DELAY = 2000 // 2 giây
+
+// Computed alert styles với Tailwind
+const alertClasses = computed(() => {
+  const baseClasses = 'transition-all duration-300'
+  
+  switch (alertType.value) {
+    case 'error':
+      return `${baseClasses} bg-red-50 text-red-900 border-red-200`
+    case 'warning':
+      return `${baseClasses} bg-amber-50 text-amber-900 border-amber-200`
+    default:
+      return `${baseClasses} bg-blue-50 text-blue-900 border-blue-200`
+  }
+})
+
+const alertIcon = computed(() => {
+  switch (alertType.value) {
+    case 'error':
+      return ShieldAlert
+    case 'warning':
+      return AlertCircle
+    default:
+      return AlertCircle
+  }
+})
+
+// Helper để tự động ẩn alert
+const showAlertWithAutoDismiss = (type: 'error' | 'warning' | 'info', message: string) => {
+  alertType.value = type
+  alertMessage.value = message
+  
+  setTimeout(() => {
+    alertMessage.value = ''
+  }, AUTO_DISMISS_DELAY)
+}
+
 
 // Validation
 const validateForm = (): boolean => {
@@ -148,7 +205,6 @@ const validateForm = (): boolean => {
   usernameError.value = ''
   passwordError.value = ''
 
-  // Validate username
   if (!username.value) {
     usernameError.value = 'Username is required'
     isValid = false
@@ -157,7 +213,6 @@ const validateForm = (): boolean => {
     isValid = false
   }
 
-  // Validate password
   if (!password.value) {
     passwordError.value = 'Password is required'
     isValid = false
@@ -175,24 +230,38 @@ const handleSignIn = async (): Promise<void> => {
     return
   }
 
-  loading.value = true
+  alertMessage.value = ''
 
   try {
-    // Gọi login từ store thay vì fake
-    const success = await authStore.login(username.value, password.value)
+    const deviceInfo = `Browser: ${navigator.userAgent}`
     
-    if (success) {
-      // Login thành công, chuyển hướng
-      router.push('/user/dashboard')
+    const result = await userStore.login({
+      username: username.value,
+      password: password.value,
+      deviceInfo: deviceInfo
+    })
+    
+    if (result.success) {
+      if (userStore.currentUser?.role === 'Admin') {
+        await userStore.logout()
+        showAlertWithAutoDismiss('error', 'Tài khoản Admin không được phép truy cập hệ thống này')
+        password.value = ''
+        return
+      }
+      
+      const redirectPath = route.query.redirect as string
+      
+      if (redirectPath) {
+        router.push(redirectPath)
+      } else {
+        router.push('/user/dashboard')
+      }
     } else {
-      // Login thất bại
-      passwordError.value = 'Invalid username or password'
+      passwordError.value = result.error || 'Invalid username or password'
     }
   } catch (error) {
     console.error('Sign in error:', error)
-    passwordError.value = 'Invalid username or password'
-  } finally {
-    loading.value = false
+    passwordError.value = 'An error occurred during login'
   }
 }
 </script>
@@ -254,9 +323,7 @@ const handleSignIn = async (): Promise<void> => {
 .logo-wrapper {
   position: relative;
   padding: 8px;
-  /* background: linear-gradient(135deg, #E8F4FA 0%, #BDE8F5 100%); */
   border-radius: 16px;
-  /* box-shadow: 0 4px 12px rgba(28, 77, 141, 0.2); */
   animation: logoFloat 3s ease-in-out infinite;
 }
 

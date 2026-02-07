@@ -1,9 +1,17 @@
 <template>
   <UserLayout>
     <div class="order-detail-page animate-fade-in">
-      <div v-if="!order" class="loading-state">
+      <div v-if="orderStore.loading" class="loading-state">
         <Loader2 class="h-12 w-12 animate-spin text-blue-500" />
         <p class="text-blue-600">Đang tải...</p>
+      </div>
+
+      <div v-else-if="!orderStore.currentOrder" class="loading-state">
+        <AlertCircle class="h-12 w-12 text-red-500" />
+        <p class="text-red-600">Không tìm thấy đơn hàng</p>
+        <Button @click="router.push('/user/orders')">
+          Quay lại danh sách
+        </Button>
       </div>
 
       <div v-else class="space-y-6">
@@ -17,32 +25,23 @@
                 @click="router.push('/user/orders')"
               >
                 <ArrowLeft class="h-4 w-4" />
-                Quay lại Orders
+                Quay lại Đơn Hàng
               </Button>
               <Badge 
-                :variant="getStatusVariant(order.status)"
+                :variant="getStatusVariant(orderStore.currentOrder.status)"
                 class="border-none px-4 py-2 shadow-lg text-center status-tag-large"
-                :style="getStatusStyle(order.status)"
+                :style="getStatusStyle(orderStore.currentOrder.status)"
               >
-                {{ getStatusLabel(order.status) }}
+                {{ getStatusLabel(orderStore.currentOrder.status) }}
               </Badge>
             </div>
 
             <div class="header-main">
               <div>
-                <h1 class="order-title">Order {{ order.orderNumber }}</h1>
-                <p class="order-meta">Ngày Tạo: {{ formatDate(order.date) }}</p>
+                <h1 class="order-title">Đơn hàng #{{ orderStore.currentOrder.id }}</h1>
+                <p class="order-meta">Ngày Tạo: {{ formatDate(orderStore.currentOrder.orderDate) }}</p>
+                <p class="order-meta">Người Nhận: {{ orderStore.currentOrder.nameWorker }}</p>
               </div>
-
-              <Button 
-                v-if="order.status === 'pending'"
-                variant="secondary"
-                class="cursor-pointer transition-all duration-200 hover:scale-105 cancel-btn"
-                @click="handleCancelOrder"
-              >
-                <X class="mr-2 h-4 w-4" />
-                Hủy Order
-              </Button>
             </div>
           </CardContent>
         </Card>
@@ -80,37 +79,51 @@
           <CardContent>
             <div class="items-list">
               <div 
-                v-for="item in order.items" 
-                :key="item.id"
+                v-for="detail in orderStore.currentOrder.orderDetails" 
+                :key="detail.id"
                 class="order-item"
               >
-                <img :src="item.image" :alt="item.name" class="item-image" />
+                <img 
+                  :src="detail.item.picture?.[0] || '/placeholder-image.jpg'" 
+                  :alt="getItemName(detail.item)" 
+                  class="item-image" 
+                />
                 <div class="item-details">
-                  <h3 class="item-name">{{ item.name }}</h3>
-                  <p class="item-description">{{ item.description }}</p>
-                  <Badge variant="secondary" class="item-category">
-                    {{ item.category }}
-                  </Badge>
+                  <h3 class="item-name">{{ getItemName(detail.item) }}</h3>
+                  <p class="item-description">{{ getItemDescription(detail.item) }}</p>
+                  <div class="flex gap-2 mt-2">
+                    <Badge variant="secondary" class="item-category">
+                      {{ detail.item.type }}
+                    </Badge>
+                    <Badge variant="outline">
+                      {{ detail.item.unit }}
+                    </Badge>
+                  </div>
                 </div>
                 <div class="item-pricing">
-                  <div class="item-quantity">Số lượng: {{ item.quantity }}</div>
+                  <div class="item-quantity">Số lượng: {{ detail.orderQty }}</div>
+                  <div class="item-price">{{ detail.item.price }}</div>
                 </div>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <!-- Order Notes -->
-        <Card v-if="order.notes" class="notes-card border-none shadow-xl" style="background: linear-gradient(135deg, #FEF3C7 0%, #ffffff 100%);">
+        <!-- Order Images (if any) -->
+        <Card v-if="orderStore.currentOrder.image?.length > 0" class="border-none shadow-xl">
           <CardHeader>
-            <CardTitle class="text-blue-900">Ghi Chú Đặc Biệt</CardTitle>
+            <CardTitle class="text-blue-900">Hình Ảnh Đơn Hàng</CardTitle>
           </CardHeader>
           <CardContent>
-            <Alert class="border-yellow-300 bg-yellow-50">
-              <AlertDescription class="text-gray-700">
-                {{ order.notes }}
-              </AlertDescription>
-            </Alert>
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              <img 
+                v-for="(img, index) in orderStore.currentOrder.image" 
+                :key="index"
+                :src="img"
+                alt="Order image"
+                class="w-full h-40 object-cover rounded-lg border-2 border-blue-200"
+              />
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -119,121 +132,172 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { useOrdersStore } from '@/stores/orders'
-import type { Order } from '@/stores/orders'
+import { useOrderStore } from '@/stores/orderStore'
+import { orderAPI } from '@/services/orderAPI'
+import { OrderStatus } from '@/types/order.types'
+import { toast } from 'sonner'
 import UserLayout from '@/components/UserLayout.vue'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import { 
-  ArrowLeft, 
-  X, 
+  ArrowLeft,
   CheckCircle2, 
   Clock, 
   ThumbsUp, 
   Check,
-  Loader2
+  Loader2,
+  AlertCircle
 } from 'lucide-vue-next'
+import type { Component } from 'vue'
+
+// Define proper types for item
+interface ItemData {
+  picture?: string[]
+  type: string
+  unit: string
+  price?: string | number
+  eng?: {
+    partname?: string
+    description?: string
+  }
+  com?: {
+    name?: string
+    specifications?: string
+  }
+}
+
+// Define timeline stage type
+interface TimelineStage {
+  title: string
+  description: string
+  icon: Component
+  active: boolean
+  completed: boolean
+}
 
 const router = useRouter()
 const route = useRoute()
-const ordersStore = useOrdersStore()
+const orderStore = useOrderStore()
 
-const order = ref<Order | undefined>()
-
-const statusTimeline = computed(() => {
-  const status = order.value?.status || 'pending'
+const statusTimeline = computed<TimelineStage[]>(() => {
+  const status = orderStore.currentOrder?.status || OrderStatus.PENDING
   
   return [
     {
       title: 'Đã Đặt',
-      description: 'Đơn hàng đã được đặt thành công',
+      description: 'Đơn hàng đã được tạo thành công',
       icon: CheckCircle2,
       active: true,
       completed: true
     },
     {
       title: 'Chờ Duyệt',
-      description: 'Đang chờ phê duyệt',
+      description: 'Đang chờ quản lý phê duyệt',
       icon: Clock,
-      active: status === 'pending',
-      completed: ['approved', 'completed'].includes(status)
+      active: status === OrderStatus.PENDING,
+      completed: [OrderStatus.APPROVED, OrderStatus.COMPLETED].includes(status as OrderStatus)
     },
     {
       title: 'Đã Duyệt',
       description: 'Đơn hàng đã được phê duyệt',
       icon: ThumbsUp,
-      active: status === 'approved',
-      completed: ['completed'].includes(status)
+      active: status === OrderStatus.APPROVED,
+      completed: status === OrderStatus.COMPLETED
     },
     {
       title: 'Hoàn Thành',
-      description: 'Đơn hàng đã được giao',
+      description: 'Đơn hàng đã hoàn tất',
       icon: Check,
-      active: status === 'completed',
-      completed: status === 'completed'
+      active: status === OrderStatus.COMPLETED,
+      completed: status === OrderStatus.COMPLETED
     }
   ]
 })
+
+const getItemName = (item: ItemData): string => {
+  return item.eng?.partname || item.com?.name || 'N/A'
+}
+
+const getItemDescription = (item: ItemData): string => {
+  return item.eng?.description || item.com?.specifications || 'No description'
+}
 
 const formatDate = (dateString: string): string => {
   const date = new Date(dateString)
   return date.toLocaleDateString('vi-VN', {
     year: 'numeric',
     month: 'long',
-    day: 'numeric'
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
   })
 }
 
 const getStatusLabel = (status: string): string => {
   const labels: Record<string, string> = {
-    pending: 'Chờ Duyệt',
-    approved: 'Đã Duyệt',
-    completed: 'Hoàn Thành',
-    rejected: 'Đã Hủy'
+    [OrderStatus.PENDING]: 'Chờ Duyệt',
+    [OrderStatus.APPROVED]: 'Đã Duyệt',
+    [OrderStatus.COMPLETED]: 'Hoàn Thành',
+    [OrderStatus.REJECTED]: 'Đã Hủy'
   }
   return labels[status] || status
 }
 
 const getStatusVariant = (status: string): 'default' | 'secondary' | 'destructive' | 'outline' => {
   const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-    pending: 'outline',
-    approved: 'default',
-    completed: 'default',
-    rejected: 'destructive'
+    [OrderStatus.PENDING]: 'outline',
+    [OrderStatus.APPROVED]: 'default',
+    [OrderStatus.COMPLETED]: 'default',
+    [OrderStatus.REJECTED]: 'destructive'
   }
   return variants[status] || 'default'
 }
 
 const getStatusStyle = (status: string): string => {
   const styles: Record<string, string> = {
-    pending: 'background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%); color: #92400E; border: 2px solid #F59E0B;',
-    approved: 'background: linear-gradient(135deg, #DBEAFE 0%, #93C5FD 100%); color: #1E40AF; border: 2px solid #3B82F6;',
-    completed: 'background: linear-gradient(135deg, #D1FAE5 0%, #6EE7B7 100%); color: #065F46; border: 2px solid #10B981;',
-    rejected: 'background: linear-gradient(135deg, #FEE2E2 0%, #FCA5A5 100%); color: #991B1B; border: 2px solid #EF4444;'
+    [OrderStatus.PENDING]: 'background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%); color: #92400E; border: 2px solid #F59E0B;',
+    [OrderStatus.APPROVED]: 'background: linear-gradient(135deg, #DBEAFE 0%, #93C5FD 100%); color: #1E40AF; border: 2px solid #3B82F6;',
+    [OrderStatus.COMPLETED]: 'background: linear-gradient(135deg, #D1FAE5 0%, #6EE7B7 100%); color: #065F46; border: 2px solid #10B981;',
+    [OrderStatus.REJECTED]: 'background: linear-gradient(135deg, #FEE2E2 0%, #FCA5A5 100%); color: #991B1B; border: 2px solid #EF4444;'
   }
   return styles[status] || ''
 }
 
-const handleCancelOrder = () => {
-  if (confirm('Bạn có chắc chắn muốn hủy đơn hàng này không?')) {
-    if (order.value) {
-      ordersStore.cancelOrder(order.value.id)
-      order.value.status = 'rejected'
-    }
+const fetchOrderDetail = async (): Promise<void> => {
+  const orderId = parseInt(route.params.id as string)
+  
+  if (isNaN(orderId)) {
+    toast.error('ID đơn hàng không hợp lệ')
+    router.push('/user/orders')
+    return
+  }
+
+  orderStore.setLoading(true)
+  try {
+    const order = await orderAPI.getById(orderId)
+    orderStore.setCurrentOrder(order)
+  } catch (error) {
+    console.error('Failed to fetch order detail:', error)
+    const errorMessage = error instanceof Error 
+      ? error.message 
+      : 'Không thể tải chi tiết đơn hàng'
+    
+    toast.error('Lỗi tải dữ liệu', {
+      description: errorMessage,
+    })
+    router.push('/user/orders')
+  } finally {
+    orderStore.setLoading(false)
   }
 }
 
 onMounted(() => {
-  ordersStore.loadOrders()
-  const orderId = parseInt(route.params.id as string)
-  order.value = ordersStore.getOrderById(orderId)
+  fetchOrderDetail()
 })
 </script>
-
 <style scoped>
 .order-detail-page {
   max-width: 1600px;
@@ -282,20 +346,7 @@ onMounted(() => {
 .order-meta {
   font-size: 1rem;
   color: #64748b;
-  margin: 0;
-}
-
-.cancel-btn {
-  background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
-  color: white;
-  border: none;
-  font-weight: 600;
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
-}
-
-.cancel-btn:hover {
-  background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%);
-  box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
+  margin: 0.25rem 0;
 }
 
 .timeline {
@@ -454,6 +505,12 @@ onMounted(() => {
   padding: 0.5rem 1rem;
   border-radius: 8px;
   border: 1px solid #4988C4;
+}
+
+.item-price {
+  font-size: 0.875rem;
+  color: #64748B;
+  font-weight: 500;
 }
 
 @media (max-width: 1024px) {

@@ -16,4 +16,14 @@ export default defineConfig({
       '@':  path.resolve(__dirname, "./src"),
     },
   },
+  server: {
+    host: '0.0.0.0', // Quan trọng cho Docker
+    port: 5175,
+    watch: {
+      usePolling: true // Quan trọng cho hot reload trong Docker
+    },
+    hmr: {
+      overlay: true
+    }
+  },
 })

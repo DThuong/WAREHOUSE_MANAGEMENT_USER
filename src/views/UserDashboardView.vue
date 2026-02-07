@@ -1,3 +1,4 @@
+<!-- eslint-disable @typescript-eslint/no-explicit-any -->
 <template>
   <UserLayout>
     <div class="user-dashboard animate-fade-in space-y-6">
@@ -6,7 +7,7 @@
         <div class="banner-overlay" />
         <CardContent class="banner-content relative z-10 p-4">
           <div>
-            <h1 class="welcome-title">Xin Chào, {{ authStore.user?.name }}!</h1>
+            <h1 class="welcome-title">Xin Chào, {{ userStore.currentUser?.username }}!</h1>
             <p class="welcome-subtitle">Chào mừng đến với kho Dong Yang !!!</p>
           </div>
           <Button 
@@ -56,7 +57,34 @@
           </div>
         </CardHeader>
         <CardContent class="pt-4">
-          <Table>
+          <!-- Loading State -->
+          <div v-if="orderStore.loading" class="flex justify-center items-center py-12">
+            <div class="text-center">
+              <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p class="text-slate-600">Đang tải đơn hàng...</p>
+            </div>
+          </div>
+
+          <!-- Error State -->
+          <div v-else-if="orderStore.error" class="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
+            <p class="text-red-600 font-medium">{{ orderStore.error }}</p>
+          </div>
+
+          <!-- Empty State -->
+          <div v-else-if="recentOrders.length === 0" class="bg-slate-50 border border-slate-200 rounded-xl p-12 text-center">
+            <Package class="h-16 w-16 text-slate-400 mx-auto mb-4" />
+            <p class="text-slate-600 font-medium text-lg">Chưa có đơn hàng nào</p>
+            <Button 
+              @click="router.push('/user/products')"
+              class="mt-4"
+              style="background: linear-gradient(135deg, #1C4D8D 0%, #4988C4 100%);"
+            >
+              Đặt hàng ngay
+            </Button>
+          </div>
+
+          <!-- Orders Table -->
+          <Table v-else>
             <TableHeader>
               <TableRow class="border-b-2" style="border-color: #BDE8F5;">
                 <TableHead class="font-semibold" style="color: #1C4D8D;">ID Đặt Hàng</TableHead>
@@ -67,8 +95,8 @@
             </TableHeader>
             <TableBody>
               <TableRow v-for="order in recentOrders" :key="order.id" class="hover:bg-blue-50/50 transition-colors">
-                <TableCell class="font-medium" style="color: #374151;">{{ order.orderNumber }}</TableCell>
-                <TableCell style="color: #6b7280;">{{ order.date }}</TableCell>
+                <TableCell class="font-medium" style="color: #374151;">#{{ order.id }}</TableCell>
+                <TableCell style="color: #6b7280;">{{ formatDate(order.orderDate) }}</TableCell>
                 <TableCell>
                   <Badge :variant="getStatusVariant(order.status)" :class="getStatusClass(order.status)">
                     {{ getStatusLabel(order.status) }}
@@ -94,10 +122,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useUserAuthStore } from '@/stores/userAuth'
-import { useOrdersStore } from '@/stores/orders'
+import { useUserStore } from '@/stores/userStore'
+import { useOrderStore } from '@/stores/orderStore'
+import { orderAPI } from '@/services/orderAPI'
 import UserLayout from '@/components/UserLayout.vue'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -118,80 +147,105 @@ import {
   List 
 } from 'lucide-vue-next'
 
-interface Order {
-  id: number
-  orderNumber: string
-  date: string
-  status: string
-}
-
 const router = useRouter()
-const authStore = useUserAuthStore()
-const ordersStore = useOrdersStore()
+const userStore = useUserStore()
+const orderStore = useOrderStore()
 
-const stats = ref([
+// Computed stats from orderStore
+const stats = computed(() => [
   { 
     icon: Clock, 
     label: 'Đang chờ', 
-    value: '3', 
+    value: orderStore.pendingOrders.length.toString(), 
     color: 'linear-gradient(135deg, #BDE8F5 0%, #A5D8F0 100%)' 
   },
   { 
     icon: CheckCircle2, 
     label: 'Xác Nhận', 
-    value: '5', 
+    value: orderStore.approvedOrders.length.toString(), 
     color: 'linear-gradient(135deg, #4988C4 0%, #5FA0D9 100%)' 
   },
   { 
     icon: Package, 
     label: 'Hoàn Thành', 
-    value: '12', 
+    value: orderStore.completedOrders.length.toString(), 
     color: 'linear-gradient(135deg, #1C4D8D 0%, #3A6BAF 100%)' 
   },
   { 
     icon: List, 
     label: 'Tổng Order', 
-    value: '20', 
+    value: orderStore.totalOrders.toString(), 
     color: 'linear-gradient(135deg, #0F2854 0%, #1C4D8D 100%)' 
   }
 ])
 
-const recentOrders = ref<Order[]>([])
+// Get recent orders (top 5)
+const recentOrders = computed(() => {
+  return orderStore.orders
+    .slice()
+    .sort((a, b) => new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime())
+    .slice(0, 5)
+})
+
+// Fetch orders from API
+const fetchOrders = async () => {
+  orderStore.setLoading(true)
+  orderStore.setError(null)
+  
+  try {
+    const orders = await orderAPI.getMyOrder()
+    orderStore.setOrders(orders)
+  } finally {
+    orderStore.setLoading(false)
+  }
+}
 
 onMounted(() => {
-  ordersStore.loadOrders()
-  recentOrders.value = ordersStore.orders.slice(0, 5)
+  // Fetch orders when component mounts
+  fetchOrders()
 })
+
+// Helper functions
+const formatDate = (dateString: string): string => {
+  const date = new Date(dateString)
+  return new Intl.DateTimeFormat('vi-VN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(date)
+}
 
 const getStatusLabel = (status: string): string => {
   const labels: Record<string, string> = {
-    pending: 'Pending',
-    approved: 'Approved',
-    processing: 'Processing',
-    completed: 'Completed',
-    rejected: 'Rejected'
+    Pending: 'Đang chờ',
+    Approved: 'Đã duyệt',
+    Processing: 'Đang xử lý',
+    Completed: 'Hoàn thành',
+    Rejected: 'Từ chối'
   }
   return labels[status] || status
 }
 
 const getStatusVariant = (status: string): 'default' | 'secondary' | 'destructive' | 'outline' => {
   const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-    pending: 'outline',
-    approved: 'default',
-    processing: 'secondary',
-    completed: 'default',
-    rejected: 'destructive'
+    Pending: 'outline',
+    Approved: 'default',
+    Processing: 'secondary',
+    Completed: 'default',
+    Rejected: 'destructive'
   }
   return variants[status] || 'default'
 }
 
 const getStatusClass = (status: string): string => {
   const classes: Record<string, string> = {
-    pending: 'bg-[#E8F4FA] text-[#4988C4] border-[#BDE8F5] font-medium',
-    approved: 'bg-[#D4E8F5] text-[#1C4D8D] border-[#A5D8F0] font-medium',
-    processing: 'bg-[#C3DCF2] text-[#0F2854] border-[#4988C4] font-medium',
-    completed: 'bg-[#D4F4DD] text-[#2D8659] border-[#A8E6CF] font-medium',
-    rejected: 'bg-[#FFE6E6] text-[#E05D5D] border-[#FFB3B3] font-medium'
+    Pending: 'bg-[#E8F4FA] text-[#4988C4] border-[#BDE8F5] font-medium',
+    Approved: 'bg-[#D4E8F5] text-[#1C4D8D] border-[#A5D8F0] font-medium',
+    Processing: 'bg-[#C3DCF2] text-[#0F2854] border-[#4988C4] font-medium',
+    Completed: 'bg-[#D4F4DD] text-[#2D8659] border-[#A8E6CF] font-medium',
+    Rejected: 'bg-[#FFE6E6] text-[#E05D5D] border-[#FFB3B3] font-medium'
   }
   return classes[status] || ''
 }
@@ -292,6 +346,21 @@ const viewOrder = (id: number) => {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @media (max-width: 1024px) {

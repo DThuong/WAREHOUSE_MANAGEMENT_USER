@@ -33,6 +33,113 @@
 
           <!-- Actions -->
           <div class="flex items-center gap-3">
+            <!-- Notification Button -->
+            <div class="relative">
+              <Button
+                variant="ghost"
+                size="icon"
+                class="relative w-10 h-10 rounded-full bg-white/15 text-white transition-all duration-300 hover:bg-white/25 hover:scale-105 cursor-pointer"
+                @click="toggleNotifications"
+              >
+                <Bell class="h-5 w-5" />
+                <Badge 
+                  v-if="notificationStore.unreadCount > 0" 
+                  variant="destructive"
+                  class="absolute -top-1 -right-1 min-w-5 h-5 rounded-full text-xs font-bold border-2 border-white px-1"
+                  style="background: #ef4444;"
+                >
+                  {{ notificationStore.unreadCount }}
+                </Badge>
+              </Button>
+
+              <!-- Notification Dropdown -->
+              <div 
+                v-if="showNotifications"
+                class="absolute right-0 mt-2 w-96 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden"
+                style="z-index: 100000;"
+                @click.stop
+              >
+                <!-- Header -->
+                <div class="flex items-center justify-between p-4 border-b bg-linear-to-r from-blue-50 to-white">
+                  <div class="flex items-center gap-2">
+                    <Bell class="h-5 w-5 text-blue-600" />
+                    <h3 class="font-semibold text-lg text-gray-900">Thông báo</h3>
+                  </div>
+                  <Button
+                    v-if="notificationStore.unreadCount > 0"
+                    variant="ghost"
+                    size="sm"
+                    class="text-blue-600 hover:text-blue-700 hover:bg-blue-50 cursor-pointer text-xs"
+                    @click="handleMarkAllRead"
+                  >
+                    <CheckCheck class="h-4 w-4 mr-1" />
+                    Đánh dấu đã đọc
+                  </Button>
+                </div>
+
+                <!-- Notifications List -->
+                <div class="overflow-y-auto max-h-100 bg-white custom-scrollbar">
+                  <div v-if="notificationStore.loading" class="p-8 text-center bg-white">
+                    <Loader2 class="h-8 w-8 animate-spin mx-auto text-blue-600" />
+                    <p class="text-sm text-gray-500 mt-2">Đang tải thông báo...</p>
+                  </div>
+
+                  <div v-else-if="notificationStore.notifications.length === 0" class="p-8 text-center bg-white">
+                    <BellOff class="h-12 w-12 mx-auto text-gray-300 mb-3" />
+                    <p class="text-sm text-gray-500 font-medium">Chưa có thông báo nào</p>
+                  </div>
+
+                  <div v-else class="divide-y bg-white">
+                    <div
+                      v-for="notification in notificationStore.recentNotifications"
+                      :key="notification.id"
+                      class="p-4 hover:bg-blue-50/50 transition-colors cursor-pointer bg-white"
+                      :class="{ 'bg-blue-50/30': !notification.isRead }"
+                      @click="handleNotificationClick(notification)"
+                    >
+                      <div class="flex gap-3">
+                        <!-- Icon -->
+                        <div class="shrink-0">
+                          <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                            <Bell class="h-5 w-5 text-blue-600" />
+                          </div>
+                        </div>
+
+                        <!-- Content -->
+                        <div class="flex-1 min-w-0">
+                          <div class="flex items-start justify-between gap-2">
+                            <h4 class="font-semibold text-sm text-gray-900 line-clamp-1">
+                              {{ notification.type || 'Thông báo' }}
+                            </h4>
+                            <div 
+                              v-if="!notification.isRead"
+                              class="w-2 h-2 bg-blue-600 rounded-full shrink-0 mt-1"
+                            />
+                          </div>
+                          
+                          <p class="text-sm text-gray-700 mt-1 line-clamp-2">
+                            {{ notification.message }}
+                          </p>
+                          
+                          <p class="text-xs text-gray-500 mt-2">
+                            {{ formatTime(notification.createdAt) }}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Backdrop overlay -->
+              <div 
+                v-if="showNotifications"
+                class="fixed inset-0 bg-transparent"
+                style="z-index: 99999;"
+                @click="showNotifications = false"
+              />
+            </div>
+
             <!-- Cart Button -->
             <Button
               variant="ghost"
@@ -44,7 +151,7 @@
               <Badge 
                 v-if="cartStore.totalItems > 0" 
                 variant="destructive"
-                class="absolute -top-1 -right-1 min-w-[20px] h-[20px] rounded-full text-xs font-bold border-2 border-white px-1"
+                class="absolute -top-1 -right-1 min-w-5 h-5 rounded-full text-xs font-bold border-2 border-white px-1"
                 style="background: #4988C4;"
               >
                 {{ cartStore.totalItems }}
@@ -71,23 +178,6 @@
                 class="w-64 dropdown-animate border-2 shadow-2xl"
                 style="z-index: 9999; background: linear-gradient(135deg, #E8F4FA 0%, #ffffff 100%); border-color: #BDE8F5;"
               >
-                <DropdownMenuLabel class="text-base font-semibold" style="color: #0F2854;">My Account</DropdownMenuLabel>
-                <DropdownMenuSeparator style="background: #BDE8F5; height: 2px;" />
-                <DropdownMenuItem 
-                  @click="console.log('Profile')"
-                  class="dropdown-item cursor-pointer py-3 px-4"
-                >
-                  <User class="mr-3 h-5 w-5" style="color: #4988C4;" />
-                  <span class="font-medium" style="color: #1C4D8D;">Profile</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  @click="console.log('Settings')"
-                  class="dropdown-item cursor-pointer py-3 px-4"
-                >
-                  <Settings class="mr-3 h-5 w-5" style="color: #4988C4;" />
-                  <span class="font-medium" style="color: #1C4D8D;">Settings</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator style="background: #BDE8F5; height: 2px;" />
                 <DropdownMenuItem 
                   @click="handleLogout"
                   class="dropdown-item cursor-pointer py-3 px-4"
@@ -134,10 +224,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useUserAuthStore } from '@/stores/userAuth'
-import { useCartStore } from '@/stores/carts'
+import { useUserStore } from '@/stores/userStore'
+import { useCartStore } from '@/stores/cartStore'
+import { useOrderStore } from '@/stores/orderStore'
+import { useNotificationStore } from '@/stores/notificationStore'
+import { signalRService } from '@/services/signalrService'
+import type { Notification } from '@/types/notification.types'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -145,8 +239,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { 
@@ -154,20 +246,25 @@ import {
   ShoppingBag,
   List,
   ShoppingCart,
-  User,
-  Settings,
-  LogOut
+  LogOut,
+  Bell,
+  BellOff,
+  CheckCheck,
+  Loader2
 } from 'lucide-vue-next'
 
 const router = useRouter()
-const authStore = useUserAuthStore()
+const userStore = useUserStore()
+const orderStore = useOrderStore()
 const cartStore = useCartStore()
+const notificationStore = useNotificationStore()
 
-authStore.checkAuth()
-cartStore.loadCart()
+// Show/hide notifications dropdown
+const showNotifications = ref(false)
 
+// Computed để lấy initial của user từ username
 const userInitial = computed(() => {
-  return authStore.user?.name?.charAt(0).toUpperCase() || 'U'
+  return userStore.currentUser?.username?.charAt(0).toUpperCase() || 'U'
 })
 
 const navLinks = [
@@ -176,27 +273,92 @@ const navLinks = [
   { path: '/user/orders', label: 'Đơn Đặt Hàng', icon: List }
 ]
 
-const handleLogout = () => {
-  authStore.logout()
-  router.push('/user/login')
+// Toggle notifications dropdown
+const toggleNotifications = () => {
+  showNotifications.value = !showNotifications.value
 }
+
+// Format time ago
+const formatTime = (dateString: string): string => {
+  const date = new Date(dateString)
+  const now = new Date()
+  const diffInMs = now.getTime() - date.getTime()
+  const diffInMinutes = Math.floor(diffInMs / 60000)
+  const diffInHours = Math.floor(diffInMs / 3600000)
+  const diffInDays = Math.floor(diffInMs / 86400000)
+
+  if (diffInMinutes < 1) return 'Vừa xong'
+  if (diffInMinutes < 60) return `${diffInMinutes} phút trước`
+  if (diffInHours < 24) return `${diffInHours} giờ trước`
+  if (diffInDays < 7) return `${diffInDays} ngày trước`
+  
+  return date.toLocaleDateString('vi-VN', { 
+    day: '2-digit', 
+    month: '2-digit', 
+    year: 'numeric' 
+  })
+}
+
+// Handle notification click
+const handleNotificationClick = async (notification: Notification) => {
+  if (!notification.isRead) {
+    await notificationStore.markAsRead(notification.id)
+  }
+  // Đóng dropdown
+  showNotifications.value = false
+  
+  // Message format: "Order 1015 của bạn đã được Admin cập nhật..."
+  const orderIdMatch = notification.message.match(/Order (\d+)/)
+  
+  if (orderIdMatch && orderIdMatch[1]) {
+    const orderId = parseInt(orderIdMatch[1])
+    router.push(`/user/orders/${orderId}`)
+  } else {
+    // Fallback: navigate to orders list if can't extract ID
+    router.push('/user/orders')
+  }
+}
+
+// Handle mark all as read
+const handleMarkAllRead = async () => {
+  await notificationStore.markAllRead()
+}
+
+const handleLogout = async () => {
+  const result = await userStore.logout()
+  
+  if (result.success) {
+    // Clear stores khi logout
+    orderStore.clearOrders()
+    notificationStore.clearAll()
+    
+    // Stop SignalR connection
+    await signalRService.stop()
+    
+    router.push('/user/login')
+  } else {
+    console.error('Logout failed:', result.error)
+  }
+}
+
+// Lifecycle
+onMounted(async () => {
+  // Fetch notifications
+  await notificationStore.fetchNotifications()
+  
+  // Start SignalR connection
+  await signalRService.start()
+})
+
+onUnmounted(async () => {
+  // Stop SignalR when component unmounts
+  await signalRService.stop()
+})
 </script>
 
 <style scoped>
 .font-rubik {
   font-family: 'Rubik', sans-serif;
-}
-
-
-@keyframes dropdownSlideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 /* Dropdown Item Hover Effects */
@@ -262,7 +424,7 @@ nav a:hover::before {
 }
 
 /* Cart Button Pulse Animation */
-.relative:has(.badge) {
+.relative:has(.animate-pulse) {
   animation: cartPulse 2s ease-in-out infinite;
 }
 
@@ -284,8 +446,36 @@ nav a:hover::before {
   transform: rotate(5deg) scale(1.1);
 }
 
-/* Enhanced Z-index for dropdown */
-:deep([data-radix-popper-content-wrapper]) {
-  z-index: 9999 !important;
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Line clamp utilities */
+.line-clamp-1 {
+  display: -webkit-box;
+  line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 </style>
