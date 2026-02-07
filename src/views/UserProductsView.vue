@@ -82,12 +82,12 @@
           <CardHeader class="space-y-2">
             <Badge 
               variant="outline" 
-              :class="product.type === 'ENGINEER' 
+              :class="product.type === 'ENG' 
                 ? 'w-fit text-blue-600 border-blue-600' 
                 : 'w-fit text-amber-600 border-amber-600'"
               class="uppercase text-xs font-semibold tracking-wider"
             >
-              {{ product.type === 'ENGINEER' ? 'Hàng Kỹ Thuật' : 'Hàng Tiêu Dùng' }}
+              {{ product.type === 'ENG' ? 'Hàng Kỹ Thuật' : 'Hàng Tiêu Dùng' }}
             </Badge>
             <CardTitle class="text-xl font-rubik">{{ getProductName(product) }}</CardTitle>
             <CardDescription class="text-base leading-relaxed line-clamp-2">
