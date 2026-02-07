@@ -49,7 +49,7 @@
         <Card 
           v-for="product in filteredProducts" 
           :key="product.id"
-          class="overflow-hidden transition-all duration-300 hover:-translate-y-2 hover:scale-[1.02] hover:shadow-2xl cursor-pointer border border-slate-200"
+          class="overflow-hidden pt-0 transition-all duration-300 hover:-translate-y-2 hover:scale-[1.02] hover:shadow-2xl cursor-pointer border border-slate-200"
         >
           <!-- Product Image -->
           <div class="relative h-72 overflow-hidden bg-slate-100">

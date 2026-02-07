@@ -12,12 +12,6 @@ interface FilterOrderParams {
   department?: string
 }
 
-interface UploadImagesResult {
-  success: number
-  failed: number
-  errors: string[]
-}
-
 export const orderAPI = {
   // Get all orders - GET /api/Order
   getAll: async (): Promise<Order[]> => {
@@ -89,68 +83,7 @@ export const orderAPI = {
     }
   },
 
-  // Update order status - PUT /api/Order/status/{id}
-  updateStatus: async (id: number, status: string): Promise<Order> => {
-    try {
-      return await api.put<Order>(
-        `/api/Order/status/${id}`, 
-        `"${status}"`,
-        {
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        }
-      )
-    } catch (error) {
-      console.error('Error updating order status:', error)
-      throw error
-    }
-  },
-
   // ===================== IMAGE APIs =====================
-
-  // Upload SINGLE image - PUT /api/Order/image/{id}
-  uploadImage: async (orderId: number, image: File): Promise<void> => {
-    try {
-      const formData = new FormData()
-      formData.append('image', image)
-
-      await api.put<void>(`/api/Order/image/${orderId}`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      })
-    } catch (error) {
-      console.error('Error uploading image:', error)
-      throw error
-    }
-  },
-
-  // Upload MULTIPLE images sequentially
-  uploadImagesSequentially: async (
-    orderId: number, 
-    images: File[]
-  ): Promise<UploadImagesResult> => {
-    let success = 0
-    let failed = 0
-    const errors: string[] = []
-
-    for (const image of images) {
-      try {
-        await orderAPI.uploadImage(orderId, image)
-        success++
-      } catch (error) {
-        failed++
-        const errorMessage = error instanceof Error 
-          ? error.message 
-          : 'Unknown error'
-        errors.push(`${image.name}: ${errorMessage}`)
-      }
-    }
-
-    return { success, failed, errors }
-  },
-
   // Get image by filename - GET /api/Order/image/{fileName}
   getImage: async (fileName: string): Promise<Blob> => {
     try {
