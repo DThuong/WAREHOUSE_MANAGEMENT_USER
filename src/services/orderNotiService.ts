@@ -18,7 +18,7 @@ class SignalRService {
 
     try {
       this.connection = new signalR.HubConnectionBuilder()
-        .withUrl('http://172.16.162.103:7001/orderHub', {
+        .withUrl('http://172.16.162.103:7000/orderHub', {
           accessTokenFactory: () => token,
           skipNegotiation: false,
           transport: signalR.HttpTransportType.WebSockets
@@ -28,10 +28,10 @@ class SignalRService {
         .build()
 
       await this.connection.start()
-      console.log('[SignalR] ✅ Connected successfully')
+      console.log('[SignalR] Connected successfully')
 
     } catch (error: any) {
-      console.error('[SignalR] ❌ Connection error:', error)
+      console.error('[SignalR] Connection error:', error)
     }
   }
 
