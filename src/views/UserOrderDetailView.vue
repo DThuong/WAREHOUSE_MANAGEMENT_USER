@@ -132,13 +132,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useOrderStore } from '@/stores/orderStore'
 import { orderAPI } from '@/services/orderAPI'
 import { OrderStatus } from '@/types/order.types'
 import { toast } from 'sonner'
 import UserLayout from '@/components/UserLayout.vue'
+import { signalRService } from '@/services/orderNotiService'
+import type { updateStatusRealtime } from '@/types/notification.types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -184,6 +186,7 @@ const orderStore = useOrderStore()
 
 const statusTimeline = computed<TimelineStage[]>(() => {
   const status = orderStore.currentOrder?.status || OrderStatus.PENDING
+  console.log('[Timeline] Current status:', status)
   
   return [
     {
@@ -279,23 +282,46 @@ const fetchOrderDetail = async (): Promise<void> => {
   try {
     const order = await orderAPI.getById(orderId)
     orderStore.setCurrentOrder(order)
+    console.log('[Component] Order loaded:', order.id, 'Status:', order.status)
   } catch (error) {
-    console.error('Failed to fetch order detail:', error)
-    const errorMessage = error instanceof Error 
-      ? error.message 
-      : 'Không thể tải chi tiết đơn hàng'
-    
-    toast.error('Lỗi tải dữ liệu', {
-      description: errorMessage,
-    })
+    console.error('[Component] Failed to fetch order:', error)
+    toast.error('Không thể tải chi tiết đơn hàng')
     router.push('/user/orders')
   } finally {
     orderStore.setLoading(false)
   }
 }
 
-onMounted(() => {
-  fetchOrderDetail()
+onMounted(async () => {
+  // 1. Kết nối SignalR
+  if (!signalRService.isConnected()) {
+    await signalRService.start()
+  }
+  
+  // 2. Load order detail
+  await fetchOrderDetail()
+  
+  // 3. Đăng ký listener cho SignalR
+  signalRService.on('OrderStatusUpdated', (response: updateStatusRealtime) => {
+    
+    // Check nếu đúng order đang xem
+    if (orderStore.currentOrder && orderStore.currentOrder.id === response.orderId) {
+      
+      // Update status trong store
+      orderStore.updateOrderStatus(response.orderId, response.newStatus as OrderStatus)
+      
+      // Hiển thị toast notification
+      toast.success('Cập nhật trạng thái', {
+        description: `Đơn hàng #${response.orderId} → ${getStatusLabel(response.newStatus)}`,
+        duration: 5000
+      })
+      
+    }
+  })
+})
+
+onUnmounted(() => {
+  signalRService.off('OrderStatusUpdated')
 })
 </script>
 <style scoped>

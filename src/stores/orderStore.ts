@@ -53,6 +53,7 @@ export const useOrderStore = defineStore('order', () => {
 
   const setCurrentOrder = (order: Order | null) => {
     currentOrder.value = order
+    console.log('[OrderStore] Current order set:', order?.id, 'Status:', order?.status)
   }
 
   const addOrder = (order: Order) => {
@@ -81,7 +82,7 @@ export const useOrderStore = defineStore('order', () => {
     }
   }
 
-  // ===================== NEW: Fetch ALL Orders (for admin/manager) =====================
+  // ===================== Fetch ALL Orders (for admin/manager) =====================
   const fetchOrders = async (): Promise<void> => {
     loading.value = true
     error.value = null
@@ -89,32 +90,83 @@ export const useOrderStore = defineStore('order', () => {
     try {
       const fetchedOrders = await orderAPI.getAll()
       orders.value = fetchedOrders
+      console.log('[OrderStore] Fetched all orders:', fetchedOrders.length)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch orders'
       error.value = errorMessage
-      console.error('Failed to fetch orders:', err)
+      console.error('[OrderStore] Failed to fetch orders:', err)
       throw err
     } finally {
       loading.value = false
     }
   }
 
-  // ===================== NEW: Fetch MY Orders (filter by current user) =====================
+  // ===================== Fetch MY Orders (filter by current user) =====================
   const fetchMyOrders = async (): Promise<void> => {
     loading.value = true
     error.value = null
     
     try {
       orders.value = await orderAPI.getMyOrder()
+      console.log('[OrderStore] Fetched my orders:', orders.value.length)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch orders'
       error.value = errorMessage
-      console.error('Failed to fetch my orders:', err)
+      console.error('[OrderStore] Failed to fetch my orders:', err)
       throw err
     } finally {
       loading.value = false
     }
   }
+
+  // ===================== UPDATE ORDER STATUS (for SignalR realtime) =====================
+  const updateOrderStatus = (orderId: number, newStatus: OrderStatus) => {
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+  console.log('[OrderStore] Updating order status')
+  console.log('[OrderStore] Order ID:', orderId)
+  console.log('[OrderStore] New Status:', newStatus)
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+  
+  // 1. Update trong danh sách orders
+  const orderIndex = orders.value.findIndex(o => o.id === orderId)
+  if (orderIndex !== -1 && orders.value[orderIndex]) {  // Check cả 2 điều kiện
+    const oldStatus = orders.value[orderIndex]!.status  //Dùng ! vì đã check ở trên
+    console.log('[OrderStore] Found order in list')
+    console.log('[OrderStore] Old status:', oldStatus)
+    
+    // Tạo object mới để trigger reactivity
+    orders.value[orderIndex] = {
+      ...orders.value[orderIndex]!,
+      status: newStatus
+    }
+    
+    // Tạo array mới để trigger reactivity
+    orders.value = [...orders.value]
+    
+    console.log('[OrderStore] Updated order in list:', oldStatus, '→', newStatus)
+  } else {
+    console.log('[OrderStore] Order not found in orders list')
+  }
+  
+  // 2. Update current order
+  if (currentOrder.value && currentOrder.value.id === orderId) {
+    const oldStatus = currentOrder.value.status
+    console.log('[OrderStore] Found current order')
+    console.log('[OrderStore] Old status:', oldStatus)
+    
+    currentOrder.value = {
+      ...currentOrder.value,
+      status: newStatus
+    }
+    
+    console.log('[OrderStore] Updated current order:', oldStatus, '→', newStatus)
+    console.log('[OrderStore] Final status:', currentOrder.value.status)
+  } else {
+    console.log('[OrderStore] Current order ID:', currentOrder.value?.id || 'none')
+  }
+  
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n')
+}
 
   // ===================== IMAGE Actions =====================
   
@@ -124,14 +176,21 @@ export const useOrderStore = defineStore('order', () => {
     if (index !== -1) {
       const order = orders.value[index]
       if (order) {
-        order.image = newImages
+        // Tạo object mới để trigger reactivity
+        orders.value[index] = {
+          ...order,
+          image: newImages
+        }
         orders.value = [...orders.value]
       }
     }
     
     // Update currentOrder if it's the same
     if (currentOrder.value?.id === orderId) {
-      currentOrder.value.image = newImages
+      currentOrder.value = {
+        ...currentOrder.value,
+        image: newImages
+      }
     }
   }
 
@@ -184,9 +243,10 @@ export const useOrderStore = defineStore('order', () => {
     addOrder,
     updateOrderInStore,
     removeOrder,
-    fetchOrders,        // 👈 Fetch tất cả orders (cho admin/manager)
-    fetchMyOrders,      // 👈 Fetch orders của user hiện tại
+    fetchOrders,    
+    fetchMyOrders,   
     updateOrderImages,
+    updateOrderStatus,
     setUploadingImages,
     setDeletingImage,
     setLoading,

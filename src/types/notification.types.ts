@@ -9,3 +9,8 @@ export interface Notification{
     createdAt: string
     account: User
 }
+
+export interface updateStatusRealtime{
+    orderId: number
+    newStatus: string
+}

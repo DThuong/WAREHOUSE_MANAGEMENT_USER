@@ -55,8 +55,8 @@
               <!-- Notification Dropdown -->
               <div 
                 v-if="showNotifications"
-                class="absolute right-0 mt-2 w-96 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden"
-                style="z-index: 100000;"
+                class="fixed md:absolute right-0 md:right-0 top-16 md:top-auto md:mt-2 left-0 md:left-auto md:w-96 w-full bg-white rounded-none md:rounded-xl shadow-2xl border-t md:border border-gray-200 overflow-hidden"
+                style="z-index: 100000; max-height: calc(100vh - 4rem);"
                 @click.stop
               >
                 <!-- Header -->
