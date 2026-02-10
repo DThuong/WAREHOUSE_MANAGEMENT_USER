@@ -44,10 +44,19 @@
         </p>
       </div>
 
+       <!-- Results Info -->
+      <div v-if="filteredProducts.length > 0" class="flex justify-between items-center mb-6">
+        <p class="text-slate-600">
+          Hiển thị {{ ((currentPage - 1) * itemsPerPage) + 1 }} - 
+          {{ Math.min(currentPage * itemsPerPage, filteredProducts.length) }} 
+          trong tổng số {{ filteredProducts.length }} vật tư
+        </p>
+      </div>
+
       <!-- Products Grid -->
-      <div v-else class="products-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <div v-if="filteredProducts.length > 0" class="products-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         <Card 
-          v-for="product in filteredProducts" 
+          v-for="product in paginatedProducts"  
           :key="product.id"
           class="overflow-hidden pt-0 transition-all duration-300 hover:-translate-y-2 hover:scale-[1.02] hover:shadow-2xl cursor-pointer border border-slate-200"
         >
@@ -106,7 +115,7 @@
               </div>
               <div class="flex items-center gap-2">
                 <span class="text-slate-600">Giá:</span>
-                <span class="font-bold text-blue-600">{{ formatPrice(product.price) }}</span>
+                <span class="font-bold text-blue-600">{{ formatPrice(product.price) ? formatPrice(product.price) : 'Chưa có' }}</span>
               </div>
             </div>
 
@@ -132,12 +141,54 @@
           </CardContent>
         </Card>
       </div>
+
+      <!-- Pagination -->
+      <div v-if="totalPages > 1" class="pagination-wrapper flex justify-center items-center gap-2 mt-8 pb-8 flex-wrap">
+        <Button
+          variant="outline"
+          @click="prevPage"
+          :disabled="currentPage === 1"
+          class="h-10 w-10 p-0 cursor-pointer"
+        >
+          ←
+        </Button>
+
+        <template v-for="(page, index) in visiblePages" :key="index">
+          <!-- Ellipsis -->
+          <span 
+            v-if="page === '...'" 
+            class="h-10 w-10 flex items-center justify-center text-slate-400"
+          >
+            ...
+          </span>
+          
+          <!-- Page Number -->
+          <Button
+            v-else
+            :variant="currentPage === page ? 'default' : 'outline'"
+            @click="goToPage(page as number)"
+            class="h-10 w-10 p-0 cursor-pointer"
+            :class="currentPage === page ? 'bg-blue-600 text-white' : ''"
+          >
+            {{ page }}
+          </Button>
+        </template>
+
+        <Button
+          variant="outline"
+          @click="nextPage"
+          :disabled="currentPage === totalPages"
+          class="h-10 w-10 p-0 cursor-pointer"
+        >
+          →
+        </Button>
+      </div>
     </div>
   </UserLayout>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useItemStore } from '@/stores/itemStore'
 import { itemAPI } from '@/services/itemAPI'
 import type { Item } from '@/types/item.types'
@@ -153,6 +204,72 @@ import { toast } from 'sonner'
 const itemStore = useItemStore()
 const cartStore = useCartStore()
 const searchQuery = ref('')
+const currentPage = ref(1)
+const itemsPerPage = ref(9)
+
+// Computed for pagination
+const totalPages = computed(() => {
+  return Math.ceil(filteredProducts.value.length / itemsPerPage.value)
+})
+
+const paginatedProducts = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage.value
+  const end = start + itemsPerPage.value
+  return filteredProducts.value.slice(start, end)
+})
+
+const visiblePages = computed(() => {
+  const pages: (number | string)[] = []
+  const total = totalPages.value
+  const current = currentPage.value
+  
+  // Nếu tổng số trang <= 7, hiển thị tất cả
+  if (total <= 7) {
+    for (let i = 1; i <= total; i++) {
+      pages.push(i)
+    }
+    return pages
+  }
+  
+  // Luôn hiển thị trang đầu
+  pages.push(1)
+  
+  // Logic hiển thị các trang giữa
+  if (current <= 3) {
+    // Gần đầu: 1 2 3 4 ... 29
+    pages.push(2, 3, 4, '...', total)
+  } else if (current >= total - 2) {
+    // Gần cuối: 1 ... 26 27 28 29
+    pages.push('...', total - 3, total - 2, total - 1, total)
+  } else {
+    // Ở giữa: 1 ... 5 6 7 ... 29
+    pages.push('...', current - 1, current, current + 1, '...', total)
+  }
+  
+  return pages
+})
+
+// Pagination functions
+const goToPage = (page: number) => {
+  if (page >= 1 && page <= totalPages.value) {
+    currentPage.value = page
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+}
+
+const nextPage = () => {
+  if (currentPage.value < totalPages.value) {
+    currentPage.value++
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+}
+
+const prevPage = () => {
+  if (currentPage.value > 1) {
+    currentPage.value--
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+}
 
 // Computed for filtered products
 const filteredProducts = computed(() => {
@@ -242,6 +359,10 @@ const addToCart = (product: Item) => {
   }
 }
 
+watch(searchQuery, () => {
+  currentPage.value = 1
+})
+
 onMounted(() => {
   fetchItems()
 })
@@ -291,6 +412,17 @@ onMounted(() => {
 
   .header-actions .relative {
     width: 100%;
+  }
+
+  .pagination-wrapper {
+    gap: 0.25rem;
+  }
+  
+  .pagination-wrapper button,
+  .pagination-wrapper span {
+    height: 2rem;
+    width: 2rem;
+    font-size: 0.875rem;
   }
 }
 </style>
