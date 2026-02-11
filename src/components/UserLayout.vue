@@ -75,6 +75,13 @@
                     <CheckCheck class="h-4 w-4 mr-1" />
                     Đánh dấu đã đọc
                   </Button>
+                  <Button
+                    v-if="isAllRead"
+                    variant="ghost"
+                    size="sm"
+                    class="text-blue-600 hover:text-blue-700 hover:bg-blue-50 cursor-pointer text-xs"
+                    @click="handleDeleteAllNoti"
+                  >Xóa tất cả</Button>
                 </div>
 
                 <!-- Notifications List -->
@@ -323,6 +330,15 @@ const handleNotificationClick = async (notification: Notification) => {
 const handleMarkAllRead = async () => {
   await notificationStore.markAllRead()
 }
+
+const handleDeleteAllNoti = async() => {
+  await notificationStore.deleteAll()
+}
+
+// Check nếu đã đọc hết thông báo thì sẽ hiển thị nút gọi api delete all
+const isAllRead = computed(() => {
+  return notificationStore.notifications.every(notification => notification.isRead)
+})
 
 const handleLogout = async () => {
   const result = await userStore.logout()

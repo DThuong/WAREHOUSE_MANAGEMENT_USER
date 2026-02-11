@@ -75,6 +75,18 @@ export const useNotificationStore = defineStore('notification', () => {
     }
   }
 
+  const deleteAll = async () => {
+    try {
+      // Gọi API để xoa tat ca
+      await notificationAPI.deleteAll()
+      
+      // Cập nhật local state
+      notifications.value = []
+    } catch (err) {
+      console.error('Error deleting all notifications:', err)
+    }
+  }
+
 
   const clearAll = () => {
     notifications.value = []
@@ -93,6 +105,7 @@ export const useNotificationStore = defineStore('notification', () => {
     
     // Actions
     fetchNotifications,
+    deleteAll,
     addNotification,
     markAsRead,
     markAllRead,

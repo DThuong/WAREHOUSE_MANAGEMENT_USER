@@ -109,7 +109,7 @@
               Xem Chi Tiết
               <ArrowRight class="h-4 w-4 ml-1" />
             </Button>
-            <Button 
+            <!-- <Button 
               v-if="order.status === 'Pending'"
               variant="ghost"
               size="sm"
@@ -119,7 +119,7 @@
             >
               <Trash2 class="h-4 w-4 mr-1" />
               Xóa
-            </Button>
+            </Button> -->
           </CardFooter>
         </Card>
       </div>
@@ -128,11 +128,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useOrderStore } from '@/stores/orderStore'
-import { orderAPI } from '@/services/orderAPI'
-import { toast } from 'sonner'
 import UserLayout from '@/components/UserLayout.vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -143,8 +141,11 @@ import {
   Calendar, 
   Package, 
   ArrowRight, 
-  Trash2
+  // Trash2
 } from 'lucide-vue-next'
+import { signalRService } from '@/services/orderNotiService'
+import type { updateStatusRealtime } from '@/types/notification.types'
+import { OrderStatus } from '@/types/order.types'
 
 // Define types
 type StatusFilterValue = 'all' | 'pending' | 'approved' | 'completed' | 'rejected'
@@ -216,37 +217,24 @@ const viewOrderDetail = (orderId: number): void => {
   router.push(`/user/orders/${orderId}`)
 }
 
-const deleteOrder = async (orderId: number): Promise<void> => {
-  if (!confirm('Bạn có chắc chắn muốn xóa đơn hàng này?')) {
-    return
-  }
-
-  const loadingToast = toast.loading('Đang xóa đơn hàng...')
-
-  try {
-    await orderAPI.delete(orderId)
-    
-    // Remove from store
-    ordersStore.removeOrder(orderId)
-    
-    toast.success('Xóa đơn hàng thành công!', {
-      id: loadingToast,
-    })
-  } catch (error) {
-    console.error('Failed to delete order:', error)
-    const errorMessage = error instanceof Error 
-      ? error.message 
-      : 'Không thể xóa đơn hàng'
-    
-    toast.error('Xóa đơn hàng thất bại', {
-      id: loadingToast,
-      description: errorMessage,
-    })
-  }
+const handleOrderStatusUpdated = (response: updateStatusRealtime) => {
+  // Update status trong store
+  ordersStore.updateOrderStatus(response.orderId, response.newStatus as OrderStatus)
 }
 
-onMounted(() => {
+onMounted(async () => {
+  // 1. Kết nối SignalR
+  if (!signalRService.isConnected()) {
+    await signalRService.start()
+  }
+  // 2. Đăng ký listener
+  signalRService.on('OrderStatusUpdated', handleOrderStatusUpdated)
+  // 3. Load orders
   ordersStore.fetchMyOrders()
+})
+
+onUnmounted(() => {
+  signalRService.off('OrderStatusUpdated')
 })
 </script>
 

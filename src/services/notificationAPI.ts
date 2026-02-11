@@ -25,4 +25,11 @@ export const notificationAPI = {
             console.error("Error marking notifications as read:", error);
         }
     },
+    deleteAll: async (): Promise<void> => {
+        try {
+            await api.delete<void>(`/api/Notification/all`);
+        } catch (error: any) {
+            console.error("Error deleting notifications:", error);
+        }
+    },
 };
