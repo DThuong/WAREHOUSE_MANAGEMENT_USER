@@ -100,7 +100,7 @@
                 <Button 
                   variant="ghost"
                   size="icon"
-                  class="text-destructive hover:text-destructive"
+                  class="text-destructive hover:text-destructive cursor-pointer hover:bg-red-100"
                   @click="removeItem(item.id!)"
                 >
                   <Trash2 class="h-4 w-4" />
@@ -140,7 +140,7 @@
             </div>
 
             <Button 
-              class="btn-checkout w-full"
+              class="btn-checkout w-full cursor-pointer"
               :disabled="orderStore.loading"
               @click="placeOrder"
             >
@@ -236,16 +236,17 @@ const getItemDescription = (item: CartItem): string => {
 }
 
 const handleQuantityInput = (itemId: number, newQuantity: number) => {
-  if (newQuantity < 1) {
-    removeItem(itemId)
-  } else {
-    localQuantities.value[itemId] = newQuantity
-  }
+  localQuantities.value[itemId] = newQuantity
 }
 
 const commitQuantityChange = (itemId: number) => {
   const newQuantity = localQuantities.value[itemId]
-  if (newQuantity && newQuantity >= 1) {
+  // Khi blur, nếu < 1 thì reset về 1, không xóa
+  if (!newQuantity || newQuantity < 1) {
+    localQuantities.value[itemId] = 1
+    cartStore.updateQuantity(itemId, 1)
+    toast.warning('Số lượng tối thiểu là 1')
+  } else {
     cartStore.updateQuantity(itemId, newQuantity)
   }
 }
@@ -253,21 +254,18 @@ const commitQuantityChange = (itemId: number) => {
 const updateQuantity = (itemId: number, delta: number) => {
   const currentQuantity = getLocalQuantity(itemId)
   const newQuantity = currentQuantity + delta
-  
+  // Chỉ cho phép giảm xuống tối thiểu 1
   if (newQuantity < 1) {
-    removeItem(itemId)
-    delete localQuantities.value[itemId]
-  } else {
-    localQuantities.value[itemId] = newQuantity
-    cartStore.updateQuantity(itemId, newQuantity)
+    return // Không làm gì cả, giữ nguyên là 1
   }
+  localQuantities.value[itemId] = newQuantity
+  cartStore.updateQuantity(itemId, newQuantity)
 }
-
 const removeItem = (itemId: number) => {
   cartStore.removeFromCart(itemId)
   delete localQuantities.value[itemId]
-  toast.success('Đã xóa vật tư khỏi giỏ hàng')
 }
+
 const placeOrder = async () => {
   // Validate name worker
   if (!nameWorker.value.trim()) {
