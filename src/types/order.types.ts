@@ -18,6 +18,7 @@ export interface Order {
   status: OrderStatus
   nameWorker: string
   image: string[]
+  note: string
   account: User
   orderDetails: OrderDetail[]
 }
