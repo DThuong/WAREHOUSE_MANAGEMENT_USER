@@ -15,7 +15,7 @@ interface CustomAxiosInstance extends Omit<AxiosInstance, 'get' | 'post' | 'put'
 }
 
 const axiosInstance = axios.create({
-  baseURL: 'http://172.16.162.103:7000/',
+  baseURL: 'http://172.16.162.123:7000/',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
