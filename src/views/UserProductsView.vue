@@ -16,7 +16,7 @@
             <Input 
               v-model="searchQuery"
               placeholder="Search products..."
-              class="pl-10 h-12 rounded-xl border-2"
+              class="pl-10 h-12 rounded-xl border-slate-200 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-0 focus-visible:border-transparent transition"
             />
           </div>
         </div>

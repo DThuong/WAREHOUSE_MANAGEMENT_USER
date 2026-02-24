@@ -109,21 +109,29 @@
               Xem Chi Tiết
               <ArrowRight class="h-4 w-4 ml-1" />
             </Button>
-            <!-- <Button 
-              v-if="order.status === 'Pending'"
+            <!-- Nút đặt lại -->
+            <Button
               variant="ghost"
               size="sm"
-              class="hover:bg-red-200 font-medium bg-red-100 cursor-pointer"
-              style="color: #e05d5d;"
-              @click.stop="deleteOrder(order.id)"
+              class="hover:bg-green-100 font-medium cursor-pointer bg-green-50"
+              style="color: #065F46;"
+              :disabled="reorderLoading === order.id"
+              @click.stop="openReorder(order)"
             >
-              <Trash2 class="h-4 w-4 mr-1" />
-              Xóa
-            </Button> -->
+              <!-- Hiển thị spinner khi đang fetch -->
+              <Loader2 v-if="reorderLoading === order.id" class="h-4 w-4 mr-1 animate-spin" />
+              <RotateCcw v-else class="h-4 w-4 mr-1" />
+              {{ reorderLoading === order.id ? 'Đang tải...' : 'Đặt Lại' }}
+            </Button>
           </CardFooter>
         </Card>
       </div>
     </div>
+    <ReorderDialog
+      v-model:open="reorderDialogOpen"
+      :order="selectedOrderForReorder"
+      @confirmed="handleReorderConfirmed"
+    />
   </UserLayout>
 </template>
 
@@ -141,11 +149,16 @@ import {
   Calendar, 
   Package, 
   ArrowRight, 
-  // Trash2
+  RotateCcw,
+  Loader2
 } from 'lucide-vue-next'
+import ReorderDialog from '@/views/ReorderDialog.vue'
+import type { Order } from '@/types/order.types'
 import { signalRService } from '@/services/orderNotiService'
 import type { updateStatusRealtime } from '@/types/notification.types'
 import { OrderStatus } from '@/types/order.types'
+import { toast } from 'sonner'
+import { orderAPI } from '@/services/orderAPI'
 
 // Define types
 type StatusFilterValue = 'all' | 'pending' | 'approved' | 'completed' | 'rejected'
@@ -159,6 +172,9 @@ const router = useRouter()
 const ordersStore = useOrderStore()
 
 const selectedStatus = ref<StatusFilterValue>('all')
+const reorderDialogOpen = ref(false)
+const selectedOrderForReorder = ref<Order | null>(null)
+const reorderLoading = ref<number | null>(null)
 
 const statusFilters: StatusFilter[] = [
   { label: 'Tất Cả', value: 'all' },
@@ -215,6 +231,31 @@ const getStatusClass = (status: string): string => {
 
 const viewOrderDetail = (orderId: number): void => {
   router.push(`/user/orders/${orderId}`)
+}
+
+// hàm openReorder
+const openReorder = async (order: Order) => {
+  reorderLoading.value = order.id
+  try {
+    // Gọi API lấy full order detail (có đủ item data)
+    const fullOrder = await orderAPI.getById(order.id)
+    selectedOrderForReorder.value = fullOrder
+    reorderDialogOpen.value = true
+  } catch (error) {
+    console.log('Không thể tải thông tin đơn hàng', error);
+  } finally {
+    reorderLoading.value = null
+  }
+}
+
+const handleReorderConfirmed = () => {
+  toast.success('Đã thêm vào giỏ hàng!', {
+    description: 'Kiểm tra giỏ hàng để tiếp tục đặt hàng',
+    action: {
+      label: 'Xem giỏ hàng',
+      onClick: () => router.push('/user/cart')
+    }
+  })
 }
 
 const handleOrderStatusUpdated = (response: updateStatusRealtime) => {

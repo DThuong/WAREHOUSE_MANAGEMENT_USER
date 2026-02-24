@@ -2,6 +2,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Item } from '@/types/item.types'
+import type { OrderDetail } from '@/types/order.types'
 
 export interface CartItem extends Item {
   quantity: number
@@ -56,6 +57,30 @@ export const useCartStore = defineStore('cart', () => {
     }))
   }
 
+  const reorderFromOrder = (orderDetails: OrderDetail[]): { addedCount: number; mergedCount: number } => {
+  let addedCount = 0
+  let mergedCount = 0
+
+  orderDetails.forEach(detail => {
+    if (!detail.item) return
+
+    const existingItem = items.value.find(i => i.id === detail.item.id)
+
+    if (existingItem) {
+      existingItem.quantity += detail.orderQty
+      mergedCount++
+    } else {
+      items.value.push({
+        ...detail.item,
+        quantity: detail.orderQty
+      } as CartItem)
+      addedCount++
+    }
+  })
+
+  return { addedCount, mergedCount }
+}
+
   return {
     items,
     totalItems,
@@ -64,6 +89,7 @@ export const useCartStore = defineStore('cart', () => {
     isInCart,
     updateQuantity,
     removeFromCart,
+    reorderFromOrder,
     clearCart,
     getCartData
   }

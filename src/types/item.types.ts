@@ -14,7 +14,7 @@ export interface ComItem {
 }
 
 export interface Item {
-  id?: number
+  id: number
   type: string
   saveQuantity: number
   price: string

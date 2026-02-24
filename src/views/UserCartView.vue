@@ -163,7 +163,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCartStore } from '@/stores/cartStore'
 import { useOrderStore } from '@/stores/orderStore'
@@ -213,15 +213,29 @@ const nameWorker = ref('')
 const showNameError = ref(false)
 const localQuantities = ref<Record<number, number>>({})
 
-const initializeLocalQuantities = () => {
-  cartStore.items.forEach(item => {
-    if (item.id) {
-      localQuantities.value[item.id] = item.quantity
-    }
-  })
-}
+watch(
+  () => cartStore.items,
+  (newItems) => {
+    // xóa localQuantities của item không còn trong cart
+    const currentIds = new Set(newItems.map(i => i.id).filter(Boolean))
+    Object.keys(localQuantities.value).forEach(key => {
+      if (!currentIds.has(Number(key))) {
+        delete localQuantities.value[Number(key)]
+      }
+    })
 
-initializeLocalQuantities()
+    // Sync quantity từ store vào local
+    newItems.forEach(item => {
+      if (item.id) {
+        if (localQuantities.value[item.id] === undefined ||
+            localQuantities.value[item.id] !== item.quantity) {
+          localQuantities.value[item.id] = item.quantity
+        }
+      }
+    })
+  },
+  { immediate: true, deep: true }
+)
 
 const getLocalQuantity = (itemId: number) => {
   return localQuantities.value[itemId] ?? cartStore.items.find(i => i.id === itemId)?.quantity ?? 1
@@ -241,23 +255,39 @@ const handleQuantityInput = (itemId: number, newQuantity: number) => {
 
 const commitQuantityChange = (itemId: number) => {
   const newQuantity = localQuantities.value[itemId]
-  // Khi blur, nếu < 1 thì reset về 1, không xóa
+
   if (!newQuantity || newQuantity < 1) {
     localQuantities.value[itemId] = 1
     cartStore.updateQuantity(itemId, 1)
     toast.warning('Số lượng tối thiểu là 1')
-  } else {
-    cartStore.updateQuantity(itemId, newQuantity)
+    return
   }
+
+  // Thêm check stockQty
+  const item = cartStore.items.find(i => i.id === itemId)
+  if (item?.stockQty && newQuantity > item.stockQty) {
+    localQuantities.value[itemId] = item.stockQty
+    cartStore.updateQuantity(itemId, item.stockQty)
+    toast.warning(`Số lượng tối đa là ${item.stockQty} (tồn kho)`)
+    return
+  }
+
+  cartStore.updateQuantity(itemId, newQuantity)
 }
 
 const updateQuantity = (itemId: number, delta: number) => {
   const currentQuantity = getLocalQuantity(itemId)
   const newQuantity = currentQuantity + delta
-  // Chỉ cho phép giảm xuống tối thiểu 1
-  if (newQuantity < 1) {
-    return // Không làm gì cả, giữ nguyên là 1
+
+  if (newQuantity < 1) return
+
+  // Thêm check stockQty
+  const item = cartStore.items.find(i => i.id === itemId)
+  if (item?.stockQty && newQuantity > item.stockQty) {
+    toast.warning(`Số lượng tối đa là ${item.stockQty} (tồn kho)`)
+    return
   }
+
   localQuantities.value[itemId] = newQuantity
   cartStore.updateQuantity(itemId, newQuantity)
 }
@@ -476,5 +506,18 @@ const placeOrder = async () => {
     gap: 1rem;
     align-items: flex-start;
   }
+}
+
+/* Ẩn spinner cho Chrome, Safari, Edge */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Ẩn spinner cho Firefox */
+input[type="number"] {
+  appearance: textfield;
+  -moz-appearance: textfield;
 }
 </style>
