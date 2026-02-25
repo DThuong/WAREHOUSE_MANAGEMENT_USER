@@ -14,4 +14,5 @@ export interface Notification{
 export interface updateStatusRealtime{
     orderId: number
     newStatus: string
+    note: string
 }

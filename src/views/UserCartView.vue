@@ -298,41 +298,65 @@ const removeItem = (itemId: number) => {
 }
 
 const placeOrder = async () => {
-  // Validate name worker
   if (!nameWorker.value.trim()) {
     showNameError.value = true
-    toast.error('Thiếu thông tin', {
-      description: 'Vui lòng nhập tên người nhận',
-    })
+    toast.error('Thiếu thông tin', { description: 'Vui lòng nhập tên người nhận' })
     return
   }
 
   showNameError.value = false
+
+  // ===== DEBUG LOG =====
+  console.log('=== DEBUG PLACE ORDER ===')
+  console.log('1. cartStore.items raw:', JSON.parse(JSON.stringify(cartStore.items)))
+  console.log('2. items count:', cartStore.items.length)
+  
+  cartStore.items.forEach((item, index) => {
+    console.log(`   Item[${index}]:`, {
+      id: item.id,
+      idType: typeof item.id,
+      quantity: item.quantity,
+      quantityType: typeof item.quantity,
+      name: item.eng?.partname || item.com?.name
+    })
+  })
+  
+  const cartData = cartStore.getCartData()
+  console.log('3. getCartData() result:', JSON.stringify(cartData))
+  console.log('4. cartData length:', cartData.length)
+  
+  const orderData = {
+    nameWorker: nameWorker.value.trim(),
+    itemIds: cartData
+  }
+  console.log('5. Final orderData to API:', JSON.stringify(orderData))
+  // ===== END DEBUG =====
+
   orderStore.setLoading(true)
 
   try {
-    const orderData = {
-      nameWorker: nameWorker.value.trim(),
-      itemIds: cartStore.getCartData()
+    const newOrder = await orderAPI.create(orderData)
+    console.log('6. API response newOrder:', JSON.stringify(newOrder))
+    console.log('7. newOrder.id:', newOrder?.id)
+    console.log('8. newOrder.orderDetails:', newOrder?.orderDetails)
+
+    if (!newOrder?.id) {
+      console.error('ERROR: newOrder is invalid!')
+      toast.error('Lỗi', { description: 'Server không trả về đơn hàng hợp lệ' })
+      return
     }
 
-    const newOrder = await orderAPI.create(orderData)
-    // Add to store
     orderStore.addOrder(newOrder)
-    // Clear cart
     cartStore.clearCart()
     nameWorker.value = ''
     
-    toast.success('Đặt hàng thành công!', {
-      description: 'Đơn hàng của bạn đã được gửi đi chờ phê duyệt',
-    })
-    
+    toast.success('Đặt hàng thành công!')
+    console.log('9. Navigating to /user/orders...')
     router.push('/user/orders')
   } catch (error) {
-    console.error('Failed to place order:', error)
-    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra khi tạo đơn hàng'
+    console.error('ERROR in placeOrder:', error)
     toast.error('Đặt hàng thất bại', {
-      description: errorMessage,
+      description: error instanceof Error ? error.message : 'Có lỗi xảy ra'
     })
   } finally {
     orderStore.setLoading(false)

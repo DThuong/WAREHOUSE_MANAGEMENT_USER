@@ -46,6 +46,24 @@
           </CardContent>
         </Card>
 
+                <Card 
+        v-if="orderStore.currentOrder.status === OrderStatus.REJECTED && orderStore.currentOrder.note" 
+        class="border-none shadow-xl"
+        style="background: linear-gradient(135deg, #FEE2E2 0%, #ffffff 100%);"
+      >
+        <CardHeader>
+          <CardTitle class="text-red-700 flex items-center gap-2">
+            <AlertCircle class="h-5 w-5" />
+            Lý Do Từ Chối
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p class="text-red-600 font-medium text-base leading-relaxed bg-red-50 border border-red-200 rounded-lg p-4">
+            {{ orderStore.currentOrder.note }}
+          </p>
+        </CardContent>
+      </Card>
+
         <!-- Order Status Timeline -->
         <Card class="timeline-card border-none shadow-xl" style="background: linear-gradient(135deg, #F0F9FF 0%, #ffffff 100%);">
           <CardHeader>
@@ -305,7 +323,7 @@ onMounted(async () => {
     if (orderStore.currentOrder && orderStore.currentOrder.id === response.orderId) {
       
       // Update status trong store
-      orderStore.updateOrderStatus(response.orderId, response.newStatus as OrderStatus)
+      orderStore.updateOrderStatus(response.orderId, response.newStatus as OrderStatus, response.note)
       
       // Hiển thị toast notification
       toast.success('Cập nhật trạng thái', {

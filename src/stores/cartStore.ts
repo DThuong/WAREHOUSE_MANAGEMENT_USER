@@ -50,29 +50,33 @@ export const useCartStore = defineStore('cart', () => {
     items.value = []
   }
 
-  const getCartData = () => {
-    return items.value.map(item => ({
-      itemId: item.id!,
-      orderQty: item.quantity
+const getCartData = () => {
+  return items.value
+    .filter(item => item.id != null) 
+    .map(item => ({
+      itemId: Number(item.id),       
+      orderQty: Number(item.quantity)
     }))
-  }
+}
 
   const reorderFromOrder = (orderDetails: OrderDetail[]): { addedCount: number; mergedCount: number } => {
   let addedCount = 0
   let mergedCount = 0
 
   orderDetails.forEach(detail => {
-    if (!detail.item) return
+    if (!detail.item || !detail.item.id) return 
 
-    const existingItem = items.value.find(i => i.id === detail.item.id)
+    const itemId = Number(detail.item.id)     
+    const existingItem = items.value.find(i => Number(i.id) === itemId)
 
     if (existingItem) {
-      existingItem.quantity += detail.orderQty
+      existingItem.quantity += Number(detail.orderQty)
       mergedCount++
     } else {
       items.value.push({
         ...detail.item,
-        quantity: detail.orderQty
+        id: itemId,                      
+        quantity: Number(detail.orderQty)
       } as CartItem)
       addedCount++
     }

@@ -109,6 +109,17 @@
               Xem Chi Tiết
               <ArrowRight class="h-4 w-4 ml-1" />
             </Button>
+            <Button 
+              v-if="order.status.toLowerCase() === 'rejected'"
+              variant="ghost" 
+              size="sm"
+              class="hover:bg-red-100 font-medium cursor-pointer bg-red-50"
+              style="color: #991B1B;"
+              @click.stop="openRejectNote(order)"
+            >
+              <XCircle class="h-4 w-4 mr-1" />
+              Lý Do Hủy
+            </Button>
             <!-- Nút đặt lại -->
             <Button
               variant="ghost"
@@ -132,6 +143,34 @@
       :order="selectedOrderForReorder"
       @confirmed="handleReorderConfirmed"
     />
+    <!-- Reject Note Dialog -->
+    <Dialog v-model:open="rejectNoteDialogOpen">
+      <DialogContent class="max-w-md border-none shadow-2xl bg-amber-100">
+        <DialogHeader>
+          <DialogTitle class="flex items-center gap-2 text-red-700">
+            <XCircle class="h-5 w-5" />
+            Lý Do Từ Chối
+          </DialogTitle>
+          <DialogDescription>
+            Đơn hàng #{{ selectedRejectOrder?.id }}
+          </DialogDescription>
+        </DialogHeader>
+        <div class="py-4">
+          <p class="text-red-600 font-medium text-base leading-relaxed bg-red-50 border border-red-200 rounded-lg p-4">
+            {{ selectedRejectOrder?.note || 'Không có lý do được cung cấp' }}
+          </p>
+        </div>
+        <DialogFooter>
+          <Button 
+            class="w-full border-none text-white cursor-pointer"
+            style="background: linear-gradient(135deg, #1C4D8D 0%, #4988C4 100%);"
+            @click="rejectNoteDialogOpen = false"
+          >
+            Đóng
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </UserLayout>
 </template>
 
@@ -159,6 +198,8 @@ import type { updateStatusRealtime } from '@/types/notification.types'
 import { OrderStatus } from '@/types/order.types'
 import { toast } from 'sonner'
 import { orderAPI } from '@/services/orderAPI'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
+import { XCircle } from 'lucide-vue-next'
 
 // Define types
 type StatusFilterValue = 'all' | 'pending' | 'approved' | 'completed' | 'rejected'
@@ -170,11 +211,12 @@ interface StatusFilter {
 
 const router = useRouter()
 const ordersStore = useOrderStore()
-
 const selectedStatus = ref<StatusFilterValue>('all')
 const reorderDialogOpen = ref(false)
 const selectedOrderForReorder = ref<Order | null>(null)
 const reorderLoading = ref<number | null>(null)
+const rejectNoteDialogOpen = ref(false)
+const selectedRejectOrder = ref<Order | null>(null)
 
 const statusFilters: StatusFilter[] = [
   { label: 'Tất Cả', value: 'all' },
@@ -183,6 +225,11 @@ const statusFilters: StatusFilter[] = [
   { label: 'Hoàn Thành', value: 'completed' },
   { label: 'Đã Hủy', value: 'rejected' }
 ]
+
+const openRejectNote = (order: Order) => {
+  selectedRejectOrder.value = order
+  rejectNoteDialogOpen.value = true
+}
 
 const filteredOrders = computed(() => {
   let list = ordersStore.orders
@@ -260,7 +307,7 @@ const handleReorderConfirmed = () => {
 
 const handleOrderStatusUpdated = (response: updateStatusRealtime) => {
   // Update status trong store
-  ordersStore.updateOrderStatus(response.orderId, response.newStatus as OrderStatus)
+  ordersStore.updateOrderStatus(response.orderId, response.newStatus as OrderStatus, response.note)
 }
 
 onMounted(async () => {

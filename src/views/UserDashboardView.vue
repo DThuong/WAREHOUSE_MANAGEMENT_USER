@@ -84,25 +84,29 @@
           </div>
 
           <!-- Orders Table -->
-          <Table v-else>
+          <Table v-else class="border-none">
             <TableHeader>
-              <TableRow class="border-b-2" style="border-color: #BDE8F5;">
-                <TableHead class="font-semibold" style="color: #1C4D8D;">ID Đặt Hàng</TableHead>
-                <TableHead class="font-semibold" style="color: #1C4D8D;">Ngày Đặt</TableHead>
-                <TableHead class="font-semibold" style="color: #1C4D8D;">Trạng Thái</TableHead>
-                <TableHead class="text-right font-semibold" style="color: #1C4D8D;">Hành Động</TableHead>
+              <TableRow class="border-none border-b border-blue-100">
+                <TableHead class="font-semibold border-none" style="color: #1C4D8D;">ID Đặt Hàng</TableHead>
+                <TableHead class="font-semibold border-none" style="color: #1C4D8D;">Ngày Đặt</TableHead>
+                <TableHead class="font-semibold border-none" style="color: #1C4D8D;">Trạng Thái</TableHead>
+                <TableHead class="text-right font-semibold border-none" style="color: #1C4D8D;">Hành Động</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              <TableRow v-for="order in recentOrders" :key="order.id" class="hover:bg-blue-50/50 transition-colors">
-                <TableCell class="font-medium" style="color: #374151;">#{{ order.id }}</TableCell>
-                <TableCell style="color: #6b7280;">{{ formatDate(order.orderDate) }}</TableCell>
-                <TableCell>
+              <TableRow 
+                v-for="order in recentOrders" 
+                :key="order.id" 
+                class="hover:bg-blue-50/50 transition-colors border-b border-blue-100 last:border-none"
+              >
+                <TableCell class="font-medium border-none" style="color: #374151;">#{{ order.id }}</TableCell>
+                <TableCell class="border-none" style="color: #6b7280;">{{ formatDate(order.orderDate) }}</TableCell>
+                <TableCell class="border-none">
                   <Badge :variant="getStatusVariant(order.status)" :class="getStatusClass(order.status)">
                     {{ getStatusLabel(order.status) }}
                   </Badge>
                 </TableCell>
-                <TableCell class="text-right">
+                <TableCell class="text-right border-none">
                   <Button 
                     variant="secondary"
                     size="sm"

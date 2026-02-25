@@ -12,7 +12,8 @@
         <div
           v-for="detail in order?.orderDetails"
           :key="detail.id"          
-          class="flex items-center gap-3 p-3 rounded-lg bg-slate-50"
+          class="flex items-center gap-3 p-3 rounded-lg"
+          :class="detail.item?.stockQty === 0 ? 'bg-red-50 opacity-60' : 'bg-slate-50'"
         >
           <img
             :src="detail.item?.picture?.[0] || '/placeholder-image.jpg'"
@@ -23,13 +24,21 @@
               {{ detail.item?.eng?.partname || detail.item?.com?.name }}
             </p>
             <p class="text-xs text-muted-foreground">
-                {{ detail.item?.eng?.description || detail.item?.com?.specifications }}
+              {{ detail.item?.eng?.description || detail.item?.com?.specifications }}
+            </p>
+            <p v-if="detail.item?.stockQty === 0" class="text-xs text-red-500 font-medium mt-0.5">
+              Hết hàng
+            </p>
+            <p v-else-if="(detail.item?.stockQty ?? 0) < detail.orderQty" class="text-xs text-amber-500 font-medium mt-0.5">
+              Chỉ còn {{ detail.item?.stockQty }} {{ detail.item?.unit }} (bạn đặt {{ detail.orderQty }})
             </p>
           </div>
           <div class="text-right">
-            <Badge variant="secondary">x{{ detail.orderQty }}</Badge>
-            <p v-if="isInCart(detail.item.id)" class="text-xs text-amber-600 mt-1">
-                +{{ detail.orderQty }} (đang có {{ getCartQty(detail.item.id) }})
+            <Badge :variant="detail.item?.stockQty === 0 ? 'destructive' : 'secondary'">
+              x{{ getActualQty(detail) }}
+            </Badge>
+            <p v-if="isInCart(detail.item.id) && detail.item?.stockQty > 0" class="text-xs text-amber-600 mt-1">
+              +{{ getActualQty(detail) }} (đang có {{ getCartQty(detail.item.id) }})
             </p>
           </div>
         </div>
@@ -44,6 +53,10 @@
           <span class="text-amber-600">Đã có trong giỏ (sẽ cộng thêm)</span>
           <span class="font-medium text-amber-600">{{ mergeItemsCount }} vật tư</span>
         </div>
+        <div v-if="skippedItemsCount > 0" class="flex justify-between">
+          <span class="text-red-500">Bỏ qua (hết hàng)</span>
+          <span class="font-medium text-red-500">{{ skippedItemsCount }} vật tư</span>
+        </div>
       </div>
 
       <DialogFooter class="gap-2">
@@ -52,10 +65,11 @@
         </Button>
         <Button
           class="bg-blue-600 hover:bg-blue-700 text-white"
+          :disabled="availableDetails.length === 0"
           @click="confirm"
         >
           <ShoppingCart class="mr-2 h-4 w-4" />
-          Thêm vào giỏ hàng
+          {{ availableDetails.length === 0 ? 'Tất cả đã hết hàng' : 'Thêm vào giỏ hàng' }}
         </Button>
       </DialogFooter>
     </DialogContent>
@@ -89,17 +103,47 @@ const isInCart = (itemId: number) =>
 const getCartQty = (itemId: number) =>      
   cartStore.items.find(i => i.id === itemId)?.quantity ?? 0
 
+const getActualQty = (detail: Order['orderDetails'][number]) => {
+  if (!detail.item?.stockQty || detail.item.stockQty === 0) return 0
+  return Math.min(detail.orderQty, detail.item.stockQty)
+}
+
+const availableDetails = computed(() =>
+  props.order?.orderDetails?.filter(d =>
+    d.item && d.item.stockQty > 0
+  ) ?? []
+)
+
+const skippedItemsCount = computed(() =>
+  props.order?.orderDetails?.filter(d =>
+    !d.item || d.item.stockQty === 0
+  ).length ?? 0
+)
+
 const newItemsCount = computed(() =>
-  props.order?.orderDetails?.filter(d => !isInCart(d.item.id)).length ?? 0
+  availableDetails.value.filter(d => !isInCart(d.item.id)).length
 )
 
 const mergeItemsCount = computed(() =>
-  props.order?.orderDetails?.filter(d => isInCart(d.item.id)).length ?? 0
+  availableDetails.value.filter(d => isInCart(d.item.id)).length
 )
 
 const confirm = () => {
   if (!props.order?.orderDetails) return
-  cartStore.reorderFromOrder(props.order.orderDetails)
+
+  const availableItems = props.order.orderDetails
+    .filter(d => d.item && d.item.stockQty > 0)
+    .map(d => ({
+      ...d,
+      orderQty: Math.min(d.orderQty, d.item?.stockQty ?? d.orderQty)
+    }))
+
+  if (availableItems.length === 0) {
+    emit('update:open', false)
+    return
+  }
+
+  cartStore.reorderFromOrder(availableItems)
   emit('update:open', false)
   emit('confirmed')
 }

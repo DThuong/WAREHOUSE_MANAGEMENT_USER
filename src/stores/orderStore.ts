@@ -129,20 +129,15 @@ export const useOrderStore = defineStore('order', () => {
   }
 
   // ===================== UPDATE ORDER STATUS (for SignalR realtime) =====================
-  const updateOrderStatus = (orderId: number, newStatus: OrderStatus) => {
+  const updateOrderStatus = (orderId: number, newStatus: OrderStatus, note: string) => {
   // 1. Update trong danh sách orders
   const orderIndex = orders.value.findIndex(o => o.id === orderId)
   if (orderIndex !== -1 && orders.value[orderIndex]) {  // Check cả 2 điều kiện
-    // const oldStatus = orders.value[orderIndex]!.status  //Dùng ! vì đã check ở trên
-    // console.log('[OrderStore] Found order in list')
-    // console.log('[OrderStore] Old status:', oldStatus)
-    
-    // Tạo object mới để trigger reactivity
     orders.value[orderIndex] = {
       ...orders.value[orderIndex]!,
-      status: newStatus
+      status: newStatus,
+      note: note
     }
-    
     // Tạo array mới để trigger reactivity
     orders.value = [...orders.value]
     
@@ -153,17 +148,11 @@ export const useOrderStore = defineStore('order', () => {
   
   // 2. Update current order
   if (currentOrder.value && currentOrder.value.id === orderId) {
-    // const oldStatus = currentOrder.value.status
-    // console.log('[OrderStore] Found current order')
-    // console.log('[OrderStore] Old status:', oldStatus)
-    
     currentOrder.value = {
       ...currentOrder.value,
-      status: newStatus
+      status: newStatus,
+      note: note
     }
-    
-    // console.log('[OrderStore] Updated current order:', oldStatus, '→', newStatus)
-    // console.log('[OrderStore] Final status:', currentOrder.value.status)
   } else {
     // console.log('[OrderStore] Current order ID:', currentOrder.value?.id || 'none')
   }
