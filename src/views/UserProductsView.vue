@@ -1,5 +1,4 @@
 <!-- eslint-disable @typescript-eslint/no-explicit-any -->
-<!-- eslint-disable @typescript-eslint/no-explicit-any -->
 <template>
   <UserLayout>
     <div class="products-page animate-fade-in">
@@ -9,7 +8,6 @@
           <h1 class="text-4xl font-bold text-slate-900 mb-2 font-rubik">Kho Dong Yang</h1>
           <p class="text-lg text-slate-500">Order vật tư ở đây nè !!!</p>
         </div>
-        
         <div class="header-actions flex gap-4">
           <div class="relative w-80">
             <Search class="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />

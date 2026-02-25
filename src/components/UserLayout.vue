@@ -200,7 +200,7 @@
     </header>
 
     <!-- Mobile Navigation -->
-    <nav class="lg:hidden sticky top-16 z-40 bg-white border-b shadow-sm">
+    <nav class="lg:hidden sticky top-16 z-40 bg-white shadow-sm overflow-hidden">
       <div class="container mx-auto px-4 max-w-8xl flex gap-1 overflow-x-auto py-2">
         <router-link 
           v-for="link in navLinks" 
@@ -306,24 +306,22 @@ const formatTime = (dateString: string): string => {
   })
 }
 
-// Handle notification click
+// xử lý click 1 thông báo cụ thể - đánh dấu đã đọc và điều hướng nếu có orderId
 const handleNotificationClick = async (notification: Notification) => {
   if (!notification.isRead) {
-    await notificationStore.markAsRead(notification.id)
+    notificationStore.markAsRead(notification.id)
   }
-  // Đóng dropdown
+  
   showNotifications.value = false
-  
-  // Message format: "Order 1015 của bạn đã được Admin cập nhật..."
-  const orderIdMatch = notification.message.match(/Order (\d+)/)
-  
-  if (orderIdMatch && orderIdMatch[1]) {
-    const orderId = parseInt(orderIdMatch[1])
-    router.push(`/user/orders/${orderId}`)
-  } else {
-    // Fallback: navigate to orders list if can't extract ID
+
+  if (!notification.orderId) {
     router.push('/user/orders')
+    return
   }
+
+  // Chỉ navigate thôi, để OrderDetail tự fetch
+  // Nếu order không tồn tại thì OrderDetail sẽ tự xử lý toast + redirect
+  router.push(`/user/orders/${notification.orderId}`)
 }
 
 // Handle mark all as read

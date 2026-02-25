@@ -35,7 +35,7 @@
           <Card 
             v-for="item in cartStore.items" 
             :key="item.id"
-            class="cart-item"
+            class="cart-item border-none shadow-md"
           >
             <CardContent class="flex gap-6 p-6 items-center">
               <img 
@@ -47,7 +47,7 @@
               <div class="item-details flex-1">
                 <h3 class="item-name">{{ getItemName(item) }}</h3>
                 <p class="item-description">{{ getItemDescription(item) }}</p>
-                <div class="flex gap-2 mt-2">
+                <div class="w-full flex gap-2 mt-2 md:justify-start items-center justify-center">
                   <Badge variant="secondary" class="item-category">
                     {{ item.type }}
                   </Badge>
@@ -111,7 +111,7 @@
         </div>
 
         <!-- Cart Summary -->
-        <Card class="cart-summary">
+        <Card class="cart-summary border-none shadow-xl" style="background: #f0f7ff;">
           <CardHeader>
             <CardTitle class="summary-title">Thông Tin Đơn Hàng</CardTitle>
           </CardHeader>
@@ -134,6 +134,7 @@
                 id="nameWorker"
                 v-model="nameWorker"
                 placeholder="Nhập tên người order vật tư..."
+                class="border-none shadow-md"
                 :class="{ 'border-red-500': showNameError }"
               />
               <p v-if="showNameError" class="text-sm text-red-500">Vui lòng nhập tên người order</p>
@@ -149,7 +150,7 @@
               Tạo Đơn Hàng
             </Button>
 
-            <Alert>
+            <Alert class="border-none shadow-md">
               <Info class="h-4 w-4" />
               <AlertDescription>
                 Đơn hàng sẽ được gửi đi chờ phê duyệt từ quản lý

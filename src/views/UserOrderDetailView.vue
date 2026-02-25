@@ -132,7 +132,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted } from 'vue'
+import { computed, onMounted, onUnmounted, watch} from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useOrderStore } from '@/stores/orderStore'
 import { orderAPI } from '@/services/orderAPI'
@@ -269,23 +269,23 @@ const getStatusStyle = (status: string): string => {
   return styles[status] || ''
 }
 
-const fetchOrderDetail = async (): Promise<void> => {
-  const orderId = parseInt(route.params.id as string)
+const fetchOrderDetail = async (orderId?: number): Promise<void> => {
+  const id = orderId ?? parseInt(route.params.id as string)
   
-  if (isNaN(orderId)) {
+  if (isNaN(id)) {
     toast.error('ID đơn hàng không hợp lệ')
     router.push('/user/orders')
     return
   }
 
+  orderStore.setCurrentOrder(null)
   orderStore.setLoading(true)
   try {
-    const order = await orderAPI.getById(orderId)
+    const order = await orderAPI.getById(id)
     orderStore.setCurrentOrder(order)
-    console.log('[Component] Order loaded:', order.id, 'Status:', order.status)
-  } catch (error) {
-    console.error('[Component] Failed to fetch order:', error)
-    toast.error('Không thể tải chi tiết đơn hàng')
+  } catch {
+    // Order không tồn tại hoặc đã bị xóa
+    toast.error('Đơn hàng này không tồn tại hoặc đã bị xóa')
     router.push('/user/orders')
   } finally {
     orderStore.setLoading(false)
@@ -297,9 +297,6 @@ onMounted(async () => {
   if (!signalRService.isConnected()) {
     await signalRService.start()
   }
-  
-  // 2. Load order detail
-  await fetchOrderDetail()
   
   // 3. Đăng ký listener cho SignalR
   signalRService.on('OrderStatusUpdated', (response: updateStatusRealtime) => {
@@ -319,6 +316,17 @@ onMounted(async () => {
     }
   })
 })
+
+// Watch khi id thay đổi (navigate từ thông báo)
+watch(
+  () => route.params.id,
+  (newId) => {
+    if (newId) {
+      fetchOrderDetail(parseInt(newId as string))
+    }
+  },
+  { immediate: true }
+)
 
 onUnmounted(() => {
   signalRService.off('OrderStatusUpdated')

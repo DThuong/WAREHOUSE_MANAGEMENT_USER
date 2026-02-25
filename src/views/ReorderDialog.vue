@@ -1,6 +1,6 @@
 <template>
   <Dialog :open="open" @update:open="$emit('update:open', $event)">
-    <DialogContent class="max-w-lg">
+    <DialogContent class="md:max-w-lg bg-amber-100">
       <DialogHeader>
         <DialogTitle>Đặt lại đơn #{{ order?.id }}</DialogTitle>
         <DialogDescription>
