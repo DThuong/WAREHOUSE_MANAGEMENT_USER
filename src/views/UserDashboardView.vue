@@ -42,7 +42,7 @@
       </div>
 
       <!-- Recent Orders -->
-      <Card class="orders-card border-none shadow-lg">
+      <Card class="orders-card border-none shadow-lg mt-6 mb-6">
         <CardHeader style="background: linear-gradient(135deg, #E8F4FA 0%, #ffffff 100%); border-bottom: 2px solid #BDE8F5;">
           <div class="flex justify-between items-center p-4">
             <CardTitle class="section-title">Recent Orders</CardTitle>

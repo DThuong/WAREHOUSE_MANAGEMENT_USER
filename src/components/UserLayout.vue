@@ -201,7 +201,7 @@
 
     <!-- Mobile Navigation -->
     <nav class="lg:hidden sticky top-16 z-40 bg-white shadow-sm overflow-hidden">
-      <div class="container mx-auto px-4 max-w-8xl flex gap-1 overflow-x-auto py-2">
+      <div class="mx-auto max-w-8xl flex items-center justify-center gap-1 overflow-x-auto py-2">
         <router-link 
           v-for="link in navLinks" 
           :key="link.path"
