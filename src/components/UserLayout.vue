@@ -55,7 +55,7 @@
               <!-- Notification Dropdown -->
               <div 
                 v-if="showNotifications"
-                class="fixed md:absolute  right-0 md:right-0 top-16 md:top-auto md:mt-2 left-0 md:left-auto md:w-96 w-full bg-white rounded-none md:rounded-xl shadow-2xl border-t md:border border-gray-200 overflow-hidden"
+                class="fixed md:absolute right-4 md:right-0 top-16 md:top-auto md:mt-2 left-4 md:left-auto md:w-96 w-auto bg-white rounded-xl md:rounded-xl shadow-2xl border md:border border-gray-200 overflow-hidden"
                 style="z-index: 100000; max-height: calc(100vh - 4rem);"
                 @click.stop
               >
@@ -96,7 +96,7 @@
                     <p class="text-sm text-gray-500 font-medium">Chưa có thông báo nào</p>
                   </div>
 
-                  <div v-else class="divide-y bg-white">
+                  <div v-else class="bg-white">
                     <div
                       v-for="notification in notificationStore.recentNotifications"
                       :key="notification.id"
@@ -116,7 +116,7 @@
                         <div class="flex-1 min-w-0">
                           <div class="flex items-start justify-between gap-2">
                             <h4 class="font-semibold text-sm text-gray-900 line-clamp-1">
-                              {{ notification.type || 'Thông báo' }}
+                              {{ notification.type === 'OrderStatusUpdated' ? "Cập nhật trạng thái" : notification.type || 'Thông báo' }}
                             </h4>
                             <div 
                               v-if="!notification.isRead"
