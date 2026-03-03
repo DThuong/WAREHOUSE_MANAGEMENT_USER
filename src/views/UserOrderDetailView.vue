@@ -107,17 +107,33 @@
                   class="item-image" 
                 />
                 <div class="item-details">
-                  <h3 class="item-name">{{ getItemName(detail.item) }}</h3>
-                  <p class="item-description">{{ getItemDescription(detail.item) }}</p>
-                  <div class="flex gap-2 mt-2">
-                    <Badge variant="secondary" class="item-category">
-                      {{ detail.item.type }}
-                    </Badge>
-                    <Badge variant="outline">
-                      {{ detail.item.unit }}
-                    </Badge>
-                  </div>
-                </div>
+  <h3 class="item-name">{{ getItemName(detail.item) }}</h3>
+  <p class="item-description">{{ getItemDescription(detail.item) }}</p>
+  <div class="flex gap-2 mt-2 flex-wrap md:justify-start lg:justify-start justify-center">
+    <Badge variant="secondary" class="item-category">
+      {{ detail.item.type }}
+    </Badge>
+    <Badge variant="outline">
+      {{ detail.item.unit }}
+    </Badge>
+  </div>
+
+  <!-- Mục đích & thời gian sử dụng -->
+  <div class="item-usage-info">
+    <div class="usage-row">
+      <span class="usage-label">
+        <Target class="h-3.5 w-3.5" /> Mục đích
+      </span>
+      <span class="usage-value">{{ detail.note || '—' }}</span>
+    </div>
+    <div class="usage-row">
+      <span class="usage-label">
+        <Timer class="h-3.5 w-3.5" /> Thời gian dùng
+      </span>
+      <span class="usage-value">{{ detail.timeUsed || '—' }}</span>
+    </div>
+  </div>
+</div>
                 <div class="item-pricing">
                   <div class="item-quantity">Số lượng: {{ detail.orderQty }}</div>
                   <div class="item-price">{{ detail.item.price }}</div>
@@ -169,7 +185,9 @@ import {
   ThumbsUp, 
   Check,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  Target,
+  Timer
 } from 'lucide-vue-next'
 import type { Component } from 'vue'
 
@@ -204,7 +222,7 @@ const orderStore = useOrderStore()
 
 const statusTimeline = computed<TimelineStage[]>(() => {
   const status = orderStore.currentOrder?.status || OrderStatus.PENDING
-  console.log('[Timeline] Current status:', status)
+  // console.log('[Timeline] Current status:', status)
   
   return [
     {
@@ -615,6 +633,45 @@ onUnmounted(() => {
 
   .item-quantity {
     width: 100%;
+  }
+}
+.item-usage-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  margin-top: 0.75rem;
+  padding: 0.625rem 0.875rem;
+  background: linear-gradient(135deg, #F0F9FF 0%, #E8F4FA 100%);
+  border: 1px solid #BDE8F5;
+  border-radius: 10px;
+}
+
+.usage-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+}
+
+.usage-label {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  color: #4988C4;
+  font-weight: 600;
+  min-width: 130px;
+  flex-shrink: 0;
+}
+
+.usage-value {
+  color: #1E293B;
+  font-weight: 500;
+}
+
+/* Mobile */
+@media (max-width: 640px) {
+  .usage-label {
+    min-width: 110px;
   }
 }
 </style>

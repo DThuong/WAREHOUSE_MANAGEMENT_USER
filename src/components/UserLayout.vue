@@ -55,12 +55,12 @@
               <!-- Notification Dropdown -->
               <div 
                 v-if="showNotifications"
-                class="fixed md:absolute right-0 md:right-0 top-16 md:top-auto md:mt-2 left-0 md:left-auto md:w-96 w-full bg-white rounded-none md:rounded-xl shadow-2xl border-t md:border border-gray-200 overflow-hidden"
+                class="fixed md:absolute  right-0 md:right-0 top-16 md:top-auto md:mt-2 left-0 md:left-auto md:w-96 w-full bg-white rounded-none md:rounded-xl shadow-2xl border-t md:border border-gray-200 overflow-hidden"
                 style="z-index: 100000; max-height: calc(100vh - 4rem);"
                 @click.stop
               >
                 <!-- Header -->
-                <div class="flex items-center justify-between p-4 border-b bg-linear-to-r from-blue-50 to-white">
+                <div class="flex items-center justify-between p-4 bg-linear-to-r from-blue-50 to-white">
                   <div class="flex items-center gap-2">
                     <Bell class="h-5 w-5 text-blue-600" />
                     <h3 class="font-semibold text-lg text-gray-900">Thông báo</h3>
@@ -219,7 +219,7 @@
     </nav>
 
     <!-- Main Content -->
-    <main class="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 max-w-8xl py-6">
+    <main class="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 max-w-8xl">
       <slot />
     </main>
 

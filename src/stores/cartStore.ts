@@ -6,6 +6,8 @@ import type { OrderDetail } from '@/types/order.types'
 
 export interface CartItem extends Item {
   quantity: number
+  note: string
+  timeUsed: string
 }
 
 export const useCartStore = defineStore('cart', () => {
@@ -31,7 +33,12 @@ export const useCartStore = defineStore('cart', () => {
     if (existingItem) {
       existingItem.quantity += quantity
     } else {
-      items.value.push({ ...item, quantity })
+      items.value.push({ 
+        ...item, 
+        quantity,
+        note: '',
+        timeUsed: '',
+      })
     }
   }
 
@@ -52,13 +59,14 @@ export const useCartStore = defineStore('cart', () => {
 
 const getCartData = () => {
   return items.value
-    .filter(item => item.id != null) 
+    .filter(item => item.id != null)
     .map(item => ({
-      itemId: Number(item.id),       
-      orderQty: Number(item.quantity)
+      itemId: Number(item.id),
+      orderQty: Number(item.quantity),
+      note: item.note?.trim() || '',
+      timeUsed: item.timeUsed?.trim() || '',
     }))
 }
-
   const reorderFromOrder = (orderDetails: OrderDetail[]): { addedCount: number; mergedCount: number } => {
   let addedCount = 0
   let mergedCount = 0
@@ -75,8 +83,10 @@ const getCartData = () => {
     } else {
       items.value.push({
         ...detail.item,
-        id: itemId,                      
-        quantity: Number(detail.orderQty)
+        id: itemId,
+        quantity: Number(detail.orderQty),
+        note: '',
+        timeUsed: '',
       } as CartItem)
       addedCount++
     }

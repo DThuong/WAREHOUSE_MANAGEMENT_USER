@@ -1,7 +1,7 @@
 <!-- eslint-disable @typescript-eslint/no-explicit-any -->
 <template>
   <UserLayout>
-    <div class="products-page animate-fade-in">
+    <div class="products-page animate-fade-in mt-6">
       <!-- Page Header -->
       <div class="page-header bg-white rounded-2xl shadow-md p-8 mb-8 flex justify-between items-center">
         <div>

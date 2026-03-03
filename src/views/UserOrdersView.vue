@@ -1,6 +1,6 @@
 <template>
   <UserLayout>
-    <div class="orders-page space-y-6 animate-fade-in">
+    <div class="orders-page mt-6 animate-fade-in">
       <!-- Page Header -->
       <Card class="border-none shadow-lg" style="background: linear-gradient(135deg, #E8F4FA 0%, #ffffff 100%);">
         <CardHeader class="space-y-4">
@@ -56,7 +56,7 @@
       </Card>
 
       <!-- Orders Grid -->
-      <div v-else class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+      <div v-else class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mt-6 mb-6">
         <Card
           v-for="order in filteredOrders"
           :key="order.id"

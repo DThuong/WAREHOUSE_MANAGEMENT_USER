@@ -13,7 +13,7 @@
           v-for="detail in order?.orderDetails"
           :key="detail.id"          
           class="flex items-center gap-3 p-3 rounded-lg"
-          :class="detail.item?.stockQty === 0 ? 'bg-red-50 opacity-60' : 'bg-slate-50'"
+          :class="getActualQty(detail) === 0 ? 'bg-red-50 opacity-60' : 'bg-slate-50'"
         >
           <img
             :src="detail.item?.picture?.[0] || '/placeholder-image.jpg'"
@@ -29,8 +29,11 @@
             <p v-if="detail.item?.stockQty === 0" class="text-xs text-red-500 font-medium mt-0.5">
               Hết hàng
             </p>
-            <p v-else-if="(detail.item?.stockQty ?? 0) < detail.orderQty" class="text-xs text-amber-500 font-medium mt-0.5">
-              Chỉ còn {{ detail.item?.stockQty }} {{ detail.item?.unit }} (bạn đặt {{ detail.orderQty }})
+            <p v-else-if="getActualQty(detail) === 0" class="text-xs text-red-500 font-medium mt-0.5">
+              Giỏ hàng đã đạt tối đa tồn kho
+            </p>
+            <p v-else-if="getActualQty(detail) < detail.orderQty" class="text-xs text-amber-500 font-medium mt-0.5">
+              Chỉ còn thêm được {{ getActualQty(detail) }} {{ detail.item?.unit }}
             </p>
           </div>
           <div class="text-right">
@@ -105,13 +108,18 @@ const getCartQty = (itemId: number) =>
 
 const getActualQty = (detail: Order['orderDetails'][number]) => {
   if (!detail.item?.stockQty || detail.item.stockQty === 0) return 0
-  return Math.min(detail.orderQty, detail.item.stockQty)
+  const cartQty = getCartQty(detail.item.id)
+  const remaining = detail.item.stockQty - cartQty  // tồn kho còn lại sau khi trừ giỏ
+  if (remaining <= 0) return 0
+  return Math.min(detail.orderQty, remaining)
 }
 
 const availableDetails = computed(() =>
-  props.order?.orderDetails?.filter(d =>
-    d.item && d.item.stockQty > 0
-  ) ?? []
+  props.order?.orderDetails?.filter(d => {
+    if (!d.item || d.item.stockQty === 0) return false
+    const cartQty = getCartQty(d.item.id)
+    return d.item.stockQty - cartQty > 0  // còn chỗ để thêm
+  }) ?? []
 )
 
 const skippedItemsCount = computed(() =>
@@ -132,11 +140,15 @@ const confirm = () => {
   if (!props.order?.orderDetails) return
 
   const availableItems = props.order.orderDetails
-    .filter(d => d.item && d.item.stockQty > 0)
-    .map(d => ({
-      ...d,
-      orderQty: Math.min(d.orderQty, d.item?.stockQty ?? d.orderQty)
-    }))
+  .filter(d => {
+    if (!d.item || d.item.stockQty === 0) return false
+    const cartQty = getCartQty(d.item.id)
+    return d.item.stockQty - cartQty > 0  // giống availableDetails
+  })
+  .map(d => ({
+    ...d,
+    orderQty: getActualQty(d)  // dùng lại getActualQty đã có cartQty logic
+  }))
 
   if (availableItems.length === 0) {
     emit('update:open', false)

@@ -3,7 +3,6 @@
     <div class="cart-page animate-fade-in">
       <!-- Page Header -->
       <div class="page-header">
-        <h1 class="page-title">Giỏ Hàng</h1>
         <Button 
           variant="ghost"
           class="cursor-pointer bg-blue-200 hover:bg-blue-400"
@@ -14,8 +13,8 @@
         </Button>
       </div>
 
-      <Card v-if="cartStore.isEmpty" class="empty-cart">
-        <CardContent class="text-center p-16">
+      <Card v-if="cartStore.isEmpty" class="border-none">
+        <CardContent class="text-center">
           <ShoppingCart class="empty-icon h-20 w-20 mx-auto mb-6 text-muted-foreground" />
           <h2 class="text-2xl font-semibold mb-2">Chưa có vật tư nào trong giỏ hàng!</h2>
           <p class="text-muted-foreground mb-8">Hãy thêm vật tư vào giỏ hàng để tiếp tục</p>
@@ -37,7 +36,7 @@
             :key="item.id"
             class="cart-item border-none shadow-md"
           >
-            <CardContent class="flex gap-6 p-6 items-center">
+            <CardContent class="flex gap-6 p-6 items-start">
               <img 
                 :src="item.picture?.[0] || '/placeholder-image.jpg'" 
                 :alt="getItemName(item)" 
@@ -47,16 +46,60 @@
               <div class="item-details flex-1">
                 <h3 class="item-name">{{ getItemName(item) }}</h3>
                 <p class="item-description">{{ getItemDescription(item) }}</p>
-                <div class="w-full flex gap-2 mt-2 md:justify-start items-center justify-center">
-                  <Badge variant="secondary" class="item-category">
-                    {{ item.type }}
-                  </Badge>
-                  <Badge variant="outline">
-                    {{ item.unit }}
-                  </Badge>
-                  <Badge variant="outline" v-if="item.stockQty">
-                    Tồn kho: {{ item.stockQty }}
-                  </Badge>
+
+                <div class="w-full flex gap-2 mt-2 md:justify-start items-center justify-center flex-wrap">
+                  <Badge variant="secondary" class="item-category">{{ item.type }}</Badge>
+                  <Badge variant="outline">{{ item.unit }}</Badge>
+                  <Badge variant="outline" v-if="item.stockQty">Tồn kho: {{ item.stockQty }}</Badge>
+                </div>
+
+                <!-- Usage inputs -->
+                <div class="usage-inputs">
+                  <!-- Mục đích sử dụng -->
+                  <div class="usage-field w-full!">
+                    <label class="usage-field-label">
+                      <Target class="h-3.5 w-3.5 text-blue-500" />
+                      Mục đích sử dụng <span class="text-red-500">*</span>
+                    </label>
+                    <Input
+                      v-model="item.note"
+                      placeholder="Nhập mục đích sử dụng..."
+                      class="usage-input border-blue-200 focus:border-blue-400"
+                      :class="{ 'border-red-400!': showUsageError && !item.note?.trim() }"
+                    />
+                  </div>
+
+                  <!-- Thời gian sử dụng -->
+                  <div class="usage-field">
+                    <label class="usage-field-label">
+                      <Timer class="h-3.5 w-3.5 text-blue-500" />
+                      Thời gian sử dụng <span class="text-red-500">*</span>
+                    </label>
+                    <div class="time-input-row">
+                      <input
+                        type="number"
+                        min="1"
+                        max="999"
+                        placeholder="Số"
+                        :value="getTimeAmount(item.id!)"
+                        @input="onTimeAmountInput(item.id!, Number(($event.target as HTMLInputElement).value))"
+                        class="time-number-input"
+                        :class="{ 'border-red-400': showUsageError && !item.timeUsed?.trim() }"
+                      />
+                      <div class="time-unit-tabs">
+                        <button
+                          v-for="opt in timeUnitOptions"
+                          :key="opt.value"
+                          type="button"
+                          class="time-unit-btn"
+                          :class="{ active: getTimeUnit(item.id!) === opt.value }"
+                          @click="onTimeUnitClick(item.id!, opt.value)"
+                        >
+                          {{ opt.label }}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -95,7 +138,6 @@
                     <Plus class="h-4 w-4" />
                   </Button>
                 </div>
-
 
                 <Button 
                   variant="ghost"
@@ -187,67 +229,103 @@ import {
   Trash2,
   Check,
   Info,
-  Loader2
+  Loader2,
+  Target,
+  Timer
 } from 'lucide-vue-next'
 
-interface CartItem {
+// ========================
+// Types
+// ========================
+interface CartItemLocal {
   id?: number
   quantity: number
+  note: string
+  timeUsed: string
   picture?: string[]
   type: string
   unit: string
   stockQty?: number
-  eng?: {
-    partname?: string
-    description?: string
-  }
-  com?: {
-    name?: string
-    specifications?: string
-  }
+  eng?: { partname?: string; description?: string }
+  com?: { name?: string; specifications?: string }
 }
 
+// ========================
+// Stores & Router
+// ========================
 const router = useRouter()
 const cartStore = useCartStore()
 const orderStore = useOrderStore()
+
+// ========================
+// Form state
+// ========================
 const nameWorker = ref('')
 const showNameError = ref(false)
+const showUsageError = ref(false)
+
+// ========================
+// Time unit options
+// ========================
+const timeUnitOptions = [
+  { label: 'Ngày', value: 'day' },
+  { label: 'Tuần', value: 'week' },
+  { label: 'Tháng', value: 'month' },
+]
+
+// ========================
+// timeUsedLocal: lưu { amount, unit } per item để render UI
+// item.timeUsed trong store sẽ là string ghép "3 Tuần"
+// ========================
+interface TimeLocal { amount: number; unit: string }
+const timeUsedLocal = ref<Record<number, TimeLocal>>({})
+
+// Parse ngược string "3 Tuần" → { amount: 3, unit: 'week' } khi load
+const parseTimeUsed = (timeUsed: string): TimeLocal => {
+  if (!timeUsed) return { amount: 1, unit: 'day' }
+  const parts = timeUsed.trim().split(' ')
+  const amount = parseInt(parts[0] ?? '1') || 1
+  const labelMap: Record<string, string> = { 'Ngày': 'day', 'Tuần': 'week', 'Tháng': 'month' }
+  const unit = labelMap[parts[1] ?? 'day'] || 'day'
+  return { amount, unit }
+}
+
+const getTimeAmount = (itemId: number): number => {
+  return timeUsedLocal.value[itemId]?.amount ?? 1
+}
+
+const getTimeUnit = (itemId: number): string => {
+  return timeUsedLocal.value[itemId]?.unit ?? 'day'
+}
+
+// Ghép string và lưu vào item.timeUsed trong store
+const syncTimeUsed = (itemId: number) => {
+  const local = timeUsedLocal.value[itemId]
+  if (!local) return
+  const unitLabel = timeUnitOptions.find(u => u.value === local.unit)?.label || 'Ngày'
+  const item = cartStore.items.find(i => i.id === itemId)
+  if (item) item.timeUsed = `${local.amount} ${unitLabel}`
+}
+
+const onTimeAmountInput = (itemId: number, value: number) => {
+  if (!timeUsedLocal.value[itemId]) timeUsedLocal.value[itemId] = { amount: 1, unit: 'day' }
+  timeUsedLocal.value[itemId].amount = value > 0 ? value : 1
+  syncTimeUsed(itemId)
+}
+
+const onTimeUnitClick = (itemId: number, unit: string) => {
+  if (!timeUsedLocal.value[itemId]) timeUsedLocal.value[itemId] = { amount: 1, unit }
+  timeUsedLocal.value[itemId].unit = unit
+  syncTimeUsed(itemId)
+}
+
+// ========================
+// Quantity local
+// ========================
 const localQuantities = ref<Record<number, number>>({})
 
-watch(
-  () => cartStore.items,
-  (newItems) => {
-    // xóa localQuantities của item không còn trong cart
-    const currentIds = new Set(newItems.map(i => i.id).filter(Boolean))
-    Object.keys(localQuantities.value).forEach(key => {
-      if (!currentIds.has(Number(key))) {
-        delete localQuantities.value[Number(key)]
-      }
-    })
-
-    // Sync quantity từ store vào local
-    newItems.forEach(item => {
-      if (item.id) {
-        if (localQuantities.value[item.id] === undefined ||
-            localQuantities.value[item.id] !== item.quantity) {
-          localQuantities.value[item.id] = item.quantity
-        }
-      }
-    })
-  },
-  { immediate: true, deep: true }
-)
-
-const getLocalQuantity = (itemId: number) => {
+const getLocalQuantity = (itemId: number): number => {
   return localQuantities.value[itemId] ?? cartStore.items.find(i => i.id === itemId)?.quantity ?? 1
-}
-
-const getItemName = (item: CartItem): string => {
-  return item.eng?.partname || item.com?.name || 'N/A'
-}
-
-const getItemDescription = (item: CartItem): string => {
-  return item.eng?.description || item.com?.specifications || 'No description'
 }
 
 const handleQuantityInput = (itemId: number, newQuantity: number) => {
@@ -256,15 +334,12 @@ const handleQuantityInput = (itemId: number, newQuantity: number) => {
 
 const commitQuantityChange = (itemId: number) => {
   const newQuantity = localQuantities.value[itemId]
-
   if (!newQuantity || newQuantity < 1) {
     localQuantities.value[itemId] = 1
     cartStore.updateQuantity(itemId, 1)
     toast.warning('Số lượng tối thiểu là 1')
     return
   }
-
-  // Thêm check stockQty
   const item = cartStore.items.find(i => i.id === itemId)
   if (item?.stockQty && newQuantity > item.stockQty) {
     localQuantities.value[itemId] = item.stockQty
@@ -272,31 +347,42 @@ const commitQuantityChange = (itemId: number) => {
     toast.warning(`Số lượng tối đa là ${item.stockQty} (tồn kho)`)
     return
   }
-
   cartStore.updateQuantity(itemId, newQuantity)
 }
 
 const updateQuantity = (itemId: number, delta: number) => {
   const currentQuantity = getLocalQuantity(itemId)
   const newQuantity = currentQuantity + delta
-
   if (newQuantity < 1) return
-
-  // Thêm check stockQty
   const item = cartStore.items.find(i => i.id === itemId)
   if (item?.stockQty && newQuantity > item.stockQty) {
     toast.warning(`Số lượng tối đa là ${item.stockQty} (tồn kho)`)
     return
   }
-
   localQuantities.value[itemId] = newQuantity
   cartStore.updateQuantity(itemId, newQuantity)
 }
+
 const removeItem = (itemId: number) => {
   cartStore.removeFromCart(itemId)
   delete localQuantities.value[itemId]
+  delete timeUsedLocal.value[itemId]
 }
 
+// ========================
+// Helpers
+// ========================
+const getItemName = (item: CartItemLocal): string => {
+  return item.eng?.partname || item.com?.name || 'N/A'
+}
+
+const getItemDescription = (item: CartItemLocal): string => {
+  return item.eng?.description || item.com?.specifications || 'No description'
+}
+
+// ========================
+// Place Order
+// ========================
 const placeOrder = async () => {
   if (!nameWorker.value.trim()) {
     showNameError.value = true
@@ -304,44 +390,31 @@ const placeOrder = async () => {
     return
   }
 
-  showNameError.value = false
-
-  // ===== DEBUG LOG =====
-  console.log('=== DEBUG PLACE ORDER ===')
-  console.log('1. cartStore.items raw:', JSON.parse(JSON.stringify(cartStore.items)))
-  console.log('2. items count:', cartStore.items.length)
-  
-  cartStore.items.forEach((item, index) => {
-    console.log(`   Item[${index}]:`, {
-      id: item.id,
-      idType: typeof item.id,
-      quantity: item.quantity,
-      quantityType: typeof item.quantity,
-      name: item.eng?.partname || item.com?.name
+  const missingInfo = cartStore.items.some(
+    item => !item.note?.trim() || !item.timeUsed?.trim()
+  )
+  if (missingInfo) {
+    showUsageError.value = true
+    toast.error('Thiếu thông tin', {
+      description: 'Vui lòng nhập mục đích và thời gian sử dụng cho tất cả vật tư',
     })
-  })
-  
-  const cartData = cartStore.getCartData()
-  console.log('3. getCartData() result:', JSON.stringify(cartData))
-  console.log('4. cartData length:', cartData.length)
-  
-  const orderData = {
-    nameWorker: nameWorker.value.trim(),
-    itemIds: cartData
+    return
   }
-  console.log('5. Final orderData to API:', JSON.stringify(orderData))
-  // ===== END DEBUG =====
+
+  // Chỉ reset khi pass hết
+  showNameError.value = false
+  showUsageError.value = false
 
   orderStore.setLoading(true)
-
   try {
+    const orderData = {
+      nameWorker: nameWorker.value.trim(),
+      itemIds: cartStore.getCartData(),
+    }
+
     const newOrder = await orderAPI.create(orderData)
-    console.log('6. API response newOrder:', JSON.stringify(newOrder))
-    console.log('7. newOrder.id:', newOrder?.id)
-    console.log('8. newOrder.orderDetails:', newOrder?.orderDetails)
 
     if (!newOrder?.id) {
-      console.error('ERROR: newOrder is invalid!')
       toast.error('Lỗi', { description: 'Server không trả về đơn hàng hợp lệ' })
       return
     }
@@ -349,20 +422,53 @@ const placeOrder = async () => {
     orderStore.addOrder(newOrder)
     cartStore.clearCart()
     nameWorker.value = ''
-    
+
     toast.success('Đặt hàng thành công!')
-    console.log('9. Navigating to /user/orders...')
     router.push('/user/orders')
   } catch (error) {
-    console.error('ERROR in placeOrder:', error)
     toast.error('Đặt hàng thất bại', {
-      description: error instanceof Error ? error.message : 'Có lỗi xảy ra'
+      description: error instanceof Error ? error.message : 'Có lỗi xảy ra',
     })
   } finally {
     orderStore.setLoading(false)
   }
 }
+
+// watch
+watch(
+  () => cartStore.items,
+  (newItems) => {
+    const currentIds = new Set(newItems.map(i => i.id).filter(Boolean))
+
+    // Cleanup cả 2
+    Object.keys(timeUsedLocal.value).forEach(key => {
+      if (!currentIds.has(Number(key))) delete timeUsedLocal.value[Number(key)]
+    })
+    Object.keys(localQuantities.value).forEach(key => {
+      if (!currentIds.has(Number(key))) delete localQuantities.value[Number(key)]
+    })
+
+    // Init cả 2
+    newItems.forEach(item => {
+      if (!item.id) return
+      const local = timeUsedLocal.value[item.id]
+      if (!local) {
+        // Item mới → parse từ store
+        timeUsedLocal.value[item.id] = parseTimeUsed(item.timeUsed)
+      } else {
+        // Kiểm tra nếu store timeUsed không khớp với local (reorder case)
+        const unitLabel = timeUnitOptions.find(u => u.value === local.unit)?.label || 'Ngày'
+        const expectedString = `${local.amount} ${unitLabel}`
+        if (item.timeUsed && item.timeUsed !== expectedString && item.timeUsed !== '') {
+          timeUsedLocal.value[item.id] = parseTimeUsed(item.timeUsed)
+        }
+      }
+    })
+  },
+  { immediate: true, deep: true }
+)
 </script>
+
 <style scoped>
 .cart-page {
   max-width: 100%;
@@ -372,18 +478,8 @@ const placeOrder = async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
-}
-
-.page-title {
-  font-family: 'Rubik', sans-serif;
-  font-size: 2.5rem;
-  font-weight: 700;
-  background: var(--gradient-gold);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  margin: 0;
+  margin-bottom: 1rem;
+  margin-top: 1rem;
 }
 
 .cart-content {
@@ -427,6 +523,7 @@ const placeOrder = async () => {
   flex-direction: column;
   align-items: flex-end;
   gap: 1rem;
+  flex-shrink: 0;
 }
 
 .quantity-control {
@@ -500,49 +597,177 @@ const placeOrder = async () => {
   cursor: not-allowed;
 }
 
-@media (max-width: 1024px) {
-  .cart-content {
-    grid-template-columns: 1fr;
-  }
-
-  .cart-summary {
-    position: static;
-  }
+/* Usage inputs */
+.usage-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  margin-top: 0.875rem;
+  width: 100%;
 }
 
-@media (max-width: 640px) {
-  .cart-item > div {
-    flex-direction: column;
-    text-align: center;
-  }
-
-  .item-controls {
-    width: 100%;
-    align-items: center;
-  }
-
-  .item-image {
-    width: 100%;
-    height: 200px;
-  }
-
-  .page-header {
-    flex-direction: column;
-    gap: 1rem;
-    align-items: flex-start;
-  }
+.usage-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
 }
 
-/* Ẩn spinner cho Chrome, Safari, Edge */
+.usage-field-label {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #1C4D8D;
+}
+
+.usage-input {
+  font-size: 0.875rem;
+  height: 2.25rem;
+  background: white;
+}
+
+.time-input-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.time-number-input {
+  width: 72px;
+  height: 2.25rem;
+  border: 1px solid #BDE8F5;
+  border-radius: 8px;
+  padding: 0 0.625rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-align: center;
+  background: white;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.time-number-input:focus {
+  border-color: #4988C4;
+}
+
+.time-unit-tabs {
+  display: flex;
+  gap: 0.25rem;
+  background: white;
+  border: 1px solid #BDE8F5;
+  border-radius: 8px;
+  padding: 0.2rem;
+}
+
+.time-unit-btn {
+  padding: 0.25rem 0.625rem;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #64748B;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.time-unit-btn.active {
+  background: linear-gradient(135deg, #1C4D8D 0%, #4988C4 100%);
+  color: white;
+  box-shadow: 0 2px 6px rgba(28, 77, 141, 0.3);
+}
+
+.time-unit-btn:hover:not(.active) {
+  background: #EFF6FF;
+  color: #1C4D8D;
+}
+
+/* Hide number spinners */
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
 
-/* Ẩn spinner cho Firefox */
 input[type="number"] {
   appearance: textfield;
   -moz-appearance: textfield;
+}
+
+/* ── Tablet (≤ 1024px) ── */
+@media (max-width: 1024px) {
+  .cart-content {
+    grid-template-columns: 1fr;
+  }
+  .cart-summary {
+    position: static;
+  }
+}
+
+/* ── Mobile (≤ 640px) ── */
+@media (max-width: 640px) {
+  .page-header {
+    padding-top: 0.5rem;  /* hoặc 0 nếu muốn sát hơn */
+  }
+  .page-header {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+
+  /* Card body xếp dọc */
+  .cart-item .flex.gap-6 {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .item-image {
+    width: 100%;
+    height: 180px;
+  }
+
+  .item-details {
+    width: 100%;
+    text-align: left;
+  }
+
+  /* Badges căn trái */
+  .item-details .flex.gap-2 {
+    justify-content: flex-start !important;
+  }
+
+  /* Controls nằm ngang full width */
+  .item-controls {
+    width: 100%;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .quantity-control {
+    flex: 1;
+  }
+
+  /* Time input wrap */
+  .time-input-row {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .time-number-input {
+    width: 80px;
+  }
+
+  /* Tab đơn vị trải đều */
+  .time-unit-tabs {
+    flex: 1;
+    justify-content: space-between;
+  }
+
+  .time-unit-btn {
+    flex: 1;
+    text-align: center;
+  }
 }
 </style>

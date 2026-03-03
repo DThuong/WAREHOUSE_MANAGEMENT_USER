@@ -8,6 +8,8 @@ export interface OrderDetail {
   itemId: number
   orderQty: number
   item: Item
+  note: string
+  timeUsed: string
 }
 
 // Order - đơn hàng chính
@@ -28,6 +30,8 @@ export interface CreateOrderRequest {
   itemIds: {
     itemId: number
     orderQty: number
+    note: string
+    timeUsed: string
   }[]
 }
 

@@ -1,7 +1,7 @@
 <!-- eslint-disable @typescript-eslint/no-explicit-any -->
 <template>
   <UserLayout>
-    <div class="user-dashboard animate-fade-in space-y-6">
+    <div class="user-dashboard animate-fade-in mt-6">
       <!-- Welcome Banner -->
       <Card class="welcome-banner overflow-hidden border-none shadow-lg">
         <div class="banner-overlay" />
@@ -23,7 +23,7 @@
       </Card>
 
       <!-- Stats Grid -->
-      <div class="stats-grid">
+      <div class="stats-grid mt-6">
         <Card 
           v-for="stat in stats" 
           :key="stat.label"
@@ -77,48 +77,80 @@
             <Button 
               @click="router.push('/user/products')"
               class="mt-4"
-              style="background: linear-gradient(135deg, #1C4D8D 0%, #4988C4 100%);"
+              style="background: linear-gradient(135deg, #1C4D8D 0%, #4988C4 100%); color: #fff"
             >
               Đặt hàng ngay
             </Button>
           </div>
 
-          <!-- Orders Table -->
-          <Table v-else class="border-none">
-            <TableHeader>
-              <TableRow class="border-none border-b border-blue-100">
-                <TableHead class="font-semibold border-none" style="color: #1C4D8D;">ID Đặt Hàng</TableHead>
-                <TableHead class="font-semibold border-none" style="color: #1C4D8D;">Ngày Đặt</TableHead>
-                <TableHead class="font-semibold border-none" style="color: #1C4D8D;">Trạng Thái</TableHead>
-                <TableHead class="text-right font-semibold border-none" style="color: #1C4D8D;">Hành Động</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow 
-                v-for="order in recentOrders" 
-                :key="order.id" 
-                class="hover:bg-blue-50/50 transition-colors border-b border-blue-100 last:border-none"
+          <template v-else>
+            <!-- Desktop: Table (hidden on mobile) -->
+            <Table class="border-none hidden md:table">
+              <TableHeader>
+                <TableRow class="border-none border-b border-blue-100">
+                  <TableHead class="font-semibold border-none" style="color: #1C4D8D;">ID Đặt Hàng</TableHead>
+                  <TableHead class="font-semibold border-none" style="color: #1C4D8D;">Ngày Đặt</TableHead>
+                  <TableHead class="font-semibold border-none" style="color: #1C4D8D;">Trạng Thái</TableHead>
+                  <TableHead class="text-right font-semibold border-none" style="color: #1C4D8D;">Hành Động</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow 
+                  v-for="order in recentOrders" 
+                  :key="order.id" 
+                  class="hover:bg-blue-50/50 transition-colors border-b border-blue-100 last:border-none"
+                >
+                  <TableCell class="font-medium border-none" style="color: #374151;">#{{ order.id }}</TableCell>
+                  <TableCell class="border-none" style="color: #6b7280;">{{ formatDate(order.orderDate) }}</TableCell>
+                  <TableCell class="border-none">
+                    <Badge :variant="getStatusVariant(order.status)" :class="getStatusClass(order.status)">
+                      {{ getStatusLabel(order.status) }}
+                    </Badge>
+                  </TableCell>
+                  <TableCell class="text-right border-none">
+                    <Button 
+                      variant="secondary"
+                      size="sm"
+                      class="hover:opacity-70 bg-blue-950 font-medium cursor-pointer text-white!"
+                      @click="viewOrder(order.id)"
+                    >
+                      Xem
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+
+            <!-- Mobile: Card list (hidden on desktop) -->
+            <div class="md:hidden flex flex-col gap-3.5">
+              <div
+                v-for="order in recentOrders"
+                :key="order.id"
+                class="order-card-mobile"
               >
-                <TableCell class="font-medium border-none" style="color: #374151;">#{{ order.id }}</TableCell>
-                <TableCell class="border-none" style="color: #6b7280;">{{ formatDate(order.orderDate) }}</TableCell>
-                <TableCell class="border-none">
+                <div class="order-card-mobile__header">
+                  <span class="order-card-mobile__id">#{{ order.id }}</span>
                   <Badge :variant="getStatusVariant(order.status)" :class="getStatusClass(order.status)">
                     {{ getStatusLabel(order.status) }}
                   </Badge>
-                </TableCell>
-                <TableCell class="text-right border-none">
+                </div>
+                <div class="order-card-mobile__date">
+                  <Clock class="h-3.5 w-3.5 mr-1 inline-block" style="color: #9ca3af;" />
+                  {{ formatDate(order.orderDate) }}
+                </div>
+                <div class="order-card-mobile__footer">
                   <Button 
-                    variant="secondary"
                     size="sm"
-                    class="hover:opacity-70 bg-blue-950 font-medium cursor-pointer text-white!"
+                    class="w-full hover:opacity-80 cursor-pointer font-semibold text-white"
+                    style="background: linear-gradient(135deg, #1C4D8D 0%, #4988C4 100%);"
                     @click="viewOrder(order.id)"
                   >
-                    Xem
+                    Xem Chi Tiết
                   </Button>
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
+                </div>
+              </div>
+            </div>
+          </template>
         </CardContent>
       </Card>
     </div>
@@ -205,7 +237,6 @@ const fetchOrders = async () => {
 }
 
 onMounted(() => {
-  // Fetch orders when component mounts
   fetchOrders()
 })
 
@@ -245,11 +276,10 @@ const getStatusVariant = (status: string): 'default' | 'secondary' | 'destructiv
 
 const getStatusClass = (status: string): string => {
   const classes: Record<string, string> = {
-    Pending: 'bg-[#E8F4FA] text-[#4988C4] border-[#BDE8F5] font-medium',
-    Approved: 'bg-[#D4E8F5] text-[#1C4D8D] border-[#A5D8F0] font-medium',
-    Processing: 'bg-[#C3DCF2] text-[#0F2854] border-[#4988C4] font-medium',
-    Completed: 'bg-[#D4F4DD] text-[#2D8659] border-[#A8E6CF] font-medium',
-    Rejected: 'bg-[#FFE6E6] text-[#E05D5D] border-[#FFB3B3] font-medium'
+    Pending:    'bg-amber-100 text-amber-600 border-amber-300 font-semibold',
+    Approved:   'bg-blue-100 text-blue-600 border-blue-300 font-semibold',
+    Completed:  'bg-emerald-100 text-emerald-600 border-emerald-300 font-semibold',
+    Rejected:   'bg-red-50 text-red-500 border-red-300 font-semibold'
   }
   return classes[status] || ''
 }
@@ -350,6 +380,46 @@ const viewOrder = (id: number) => {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+/* Mobile card styles */
+.order-card-mobile {
+  background: linear-gradient(135deg, #f8fbff 0%, #ffffff 100%);
+  border: 1px solid #BDE8F5;
+  border-radius: 14px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  box-shadow: 0 2px 8px rgba(28, 77, 141, 0.08);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.order-card-mobile:active {
+  transform: scale(0.99);
+}
+
+.order-card-mobile__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.order-card-mobile__id {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1C4D8D;
+}
+
+.order-card-mobile__date {
+  font-size: 0.8125rem;
+  color: #9ca3af;
+  display: flex;
+  align-items: center;
+}
+
+.order-card-mobile__footer {
+  margin-top: 0.25rem;
 }
 
 .animate-fade-in {
