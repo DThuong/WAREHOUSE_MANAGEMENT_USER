@@ -158,7 +158,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/userStore'
 import { useOrderStore } from '@/stores/orderStore'
@@ -182,6 +182,9 @@ import {
   Package, 
   List 
 } from 'lucide-vue-next'
+import { signalRService } from '@/services/orderNotiService'
+import type { updateStatusRealtime } from '@/types/notification.types'
+import { OrderStatus } from '@/types/order.types'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -236,10 +239,6 @@ const fetchOrders = async () => {
   }
 }
 
-onMounted(() => {
-  fetchOrders()
-})
-
 // Helper functions
 const formatDate = (dateString: string): string => {
   const date = new Date(dateString)
@@ -287,6 +286,27 @@ const getStatusClass = (status: string): string => {
 const viewOrder = (id: number) => {
   router.push(`/user/orders/${id}`)
 }
+
+// Handler cập nhật realtime - giống OrdersView
+const handleOrderStatusUpdated = (response: updateStatusRealtime) => {
+  orderStore.updateOrderStatus(response.orderId, response.newStatus as OrderStatus, response.note)
+}
+
+onMounted(async () => {
+  // Kết nối SignalR nếu chưa kết nối
+  if (!signalRService.isConnected()) {
+    await signalRService.start()
+  }
+  // Đăng ký listener realtime
+  signalRService.on('OrderStatusUpdated', handleOrderStatusUpdated)
+  
+  // Fetch orders như cũ
+  fetchOrders()
+})
+
+onUnmounted(() => {
+  signalRService.off('OrderStatusUpdated')
+})
 </script>
 
 <style scoped>
