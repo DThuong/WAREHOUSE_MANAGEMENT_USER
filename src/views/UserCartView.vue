@@ -64,7 +64,7 @@
                     <Input
                       v-model="item.note"
                       placeholder="Nhập mục đích sử dụng..."
-                      class="usage-input border-blue-200 focus:border-blue-400"
+                      class="usage-input border-blue-200 focus:border-blue-400 focus:ring-0 focus:outline-none"
                       :class="{ 'border-red-400!': showUsageError && !item.note?.trim() }"
                     />
                   </div>
@@ -124,7 +124,7 @@
                       @input="handleQuantityInput(item.id!, Number(($event.target as HTMLInputElement).value))"
                       @blur="commitQuantityChange(item.id!)"
                       @keyup.enter="($event.target as HTMLInputElement).blur()"
-                      class="w-20 text-center border border-slate-200 rounded-lg py-1 px-2 outline-none bg-transparent"
+                      class="w-20 text-center border border-slate-200 rounded-lg py-1 px-2 outline-none bg-transparent focus:border-blue-300"
                     />
                   </span>
 
@@ -211,7 +211,7 @@ import { useRouter } from 'vue-router'
 import { useCartStore } from '@/stores/cartStore'
 import { useOrderStore } from '@/stores/orderStore'
 import { orderAPI } from '@/services/orderAPI'
-import { toast } from 'sonner'
+import { toast } from 'vue-sonner'
 import UserLayout from '@/components/UserLayout.vue'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -384,27 +384,45 @@ const getItemDescription = (item: CartItemLocal): string => {
 // Place Order
 // ========================
 const placeOrder = async () => {
+  // ── Validate tên người order ──
   if (!nameWorker.value.trim()) {
     showNameError.value = true
-    toast.error('Thiếu thông tin', { description: 'Vui lòng nhập tên người nhận' })
-    return
-  }
-
-  const missingInfo = cartStore.items.some(
-    item => !item.note?.trim() || !item.timeUsed?.trim()
-  )
-  if (missingInfo) {
-    showUsageError.value = true
-    toast.error('Thiếu thông tin', {
-      description: 'Vui lòng nhập mục đích và thời gian sử dụng cho tất cả vật tư',
+    toast.error('Thiếu tên người order', {
+      description: 'Vui lòng nhập tên người order vật tư',
     })
     return
   }
-
-  // Chỉ reset khi pass hết
   showNameError.value = false
+
+  // ── Validate từng item ──
+  const missingNote = cartStore.items.filter(item => !item.note?.trim())
+  const missingTime = cartStore.items.filter(item => !item.timeUsed?.trim())
+
+  if (missingNote.length > 0 || missingTime.length > 0) {
+    showUsageError.value = true
+
+    // Tên item để hiển thị trong toast
+    const getItemLabel = (item: CartItemLocal) =>
+      item.eng?.partname || item.com?.name || `ID ${item.id}`
+
+    if (missingNote.length > 0) {
+      toast.error('Thiếu mục đích sử dụng', {
+        description: missingNote.map(getItemLabel).join(', '),
+      })
+    }
+
+    if (missingTime.length > 0) {
+      toast.error('Thiếu thời gian sử dụng', {
+        description: missingTime.map(getItemLabel).join(', '),
+      })
+    }
+
+    return
+  }
+
   showUsageError.value = false
 
+  // ── Call API ──
   orderStore.setLoading(true)
   try {
     const orderData = {
@@ -424,7 +442,9 @@ const placeOrder = async () => {
     nameWorker.value = ''
 
     toast.success('Đặt hàng thành công!')
-    router.push('/user/orders')
+    setTimeout(() => {
+      router.push('/user/orders')
+    }, 3000);
   } catch (error) {
     toast.error('Đặt hàng thất bại', {
       description: error instanceof Error ? error.message : 'Có lỗi xảy ra',
@@ -480,6 +500,13 @@ watch(
 </script>
 
 <style scoped>
+
+input:focus,
+.usage-input:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
 .cart-page {
   max-width: 100%;
 }

@@ -14,15 +14,19 @@
               Đóng
             </button>
           </div>
-        </div>
+        </div>S
       </div>
     </Transition>
+
+    <Toaster position="top-center" richColors :duration="2000" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { Toaster } from '@/components/ui/sonner'
+import 'vue-sonner/style.css'
 import { useUserStore } from '@/stores/userStore'
 import { 
   isTokenExpired, 

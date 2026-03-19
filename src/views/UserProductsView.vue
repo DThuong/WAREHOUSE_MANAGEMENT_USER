@@ -197,7 +197,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Search, ShoppingCart, Check } from 'lucide-vue-next'
 import { useCartStore } from '@/stores/cartStore'
-import { toast } from 'sonner'
+import { toast } from 'vue-sonner'
 
 const itemStore = useItemStore()
 const cartStore = useCartStore()
