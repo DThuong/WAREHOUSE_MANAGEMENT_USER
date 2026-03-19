@@ -440,7 +440,7 @@ watch(
   (newItems) => {
     const currentIds = new Set(newItems.map(i => i.id).filter(Boolean))
 
-    // Cleanup cả 2
+    // Cleanup
     Object.keys(timeUsedLocal.value).forEach(key => {
       if (!currentIds.has(Number(key))) delete timeUsedLocal.value[Number(key)]
     })
@@ -448,19 +448,29 @@ watch(
       if (!currentIds.has(Number(key))) delete localQuantities.value[Number(key)]
     })
 
-    // Init cả 2
+    // Init
     newItems.forEach(item => {
       if (!item.id) return
-      const local = timeUsedLocal.value[item.id]
-      if (!local) {
-        // Item mới → parse từ store
-        timeUsedLocal.value[item.id] = parseTimeUsed(item.timeUsed)
+
+      // ── timeUsed ──
+      if (!timeUsedLocal.value[item.id]) {
+        // Item mới: parse từ store hoặc dùng default "1 Ngày"
+        const parsed = parseTimeUsed(item.timeUsed)
+        timeUsedLocal.value[item.id] = parsed
+
+        // Sync ngược vào store ngay nếu chưa có giá trị
+        if (!item.timeUsed?.trim()) {
+          const unitLabel = timeUnitOptions.find(u => u.value === parsed.unit)?.label || 'Ngày'
+          item.timeUsed = `${parsed.amount} ${unitLabel}` // "1 Ngày"
+        }
       } else {
-        // Kiểm tra nếu store timeUsed không khớp với local (reorder case)
-        const unitLabel = timeUnitOptions.find(u => u.value === local.unit)?.label || 'Ngày'
+        // Item đã có local (reorder case): store timeUsed khác → cập nhật local
+        const local = timeUsedLocal.value[item.id!]
+        if (!local) return
+        const unitLabel = timeUnitOptions.find(u => u.value === local.unit)?.label ?? 'Ngày'
         const expectedString = `${local.amount} ${unitLabel}`
-        if (item.timeUsed && item.timeUsed !== expectedString && item.timeUsed !== '') {
-          timeUsedLocal.value[item.id] = parseTimeUsed(item.timeUsed)
+        if (item.timeUsed && item.timeUsed !== expectedString) {
+          timeUsedLocal.value[item.id!] = parseTimeUsed(item.timeUsed)
         }
       }
     })
