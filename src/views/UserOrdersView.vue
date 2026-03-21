@@ -99,11 +99,11 @@
           </CardContent>
 
           <!-- Order Footer -->
-          <CardFooter class="flex justify-between items-center p-3 border-t pt-3!" style="background: linear-gradient(135deg, #E8F4FA 0%, #ffffff 100%); border-color: #BDE8F5;">
+          <CardFooter class="flex lg:flex-row md:flex-row flex-col w-full justify-between items-center p-3 border-t pt-3! gap-3" style="background: linear-gradient(135deg, #E8F4FA 0%, #ffffff 100%); border-color: #BDE8F5;">
             <Button 
               variant="ghost" 
               size="sm"
-              class="hover:bg-blue-200 font-medium cursor-pointer bg-blue-400/20"
+              class="hover:bg-blue-200 font-medium cursor-pointer bg-blue-400/20 w-full"
               style="color: #1C4D8D;"
             >
               Xem Chi Tiết
@@ -113,7 +113,7 @@
               v-if="order.status.toLowerCase() === 'rejected'"
               variant="ghost" 
               size="sm"
-              class="hover:bg-red-100 font-medium cursor-pointer bg-red-50"
+              class="hover:bg-red-100 font-medium cursor-pointer bg-red-50 w-full"
               style="color: #991B1B;"
               @click.stop="openRejectNote(order)"
             >
@@ -124,7 +124,7 @@
             <Button
               variant="ghost"
               size="sm"
-              class="hover:bg-green-100 font-medium cursor-pointer bg-green-50"
+              class="hover:bg-green-100 font-medium cursor-pointer bg-green-50 w-full"
               style="color: #065F46;"
               :disabled="reorderLoading === order.id"
               @click.stop="openReorder(order)"
@@ -144,8 +144,8 @@
       @confirmed="handleReorderConfirmed"
     />
     <!-- Reject Note Dialog -->
-    <Dialog v-model:open="rejectNoteDialogOpen">
-      <DialogContent class="max-w-md border-none shadow-2xl bg-amber-100">
+    <Dialog v-model:open="rejectNoteDialogOpen" class="">
+      <DialogContent class="max-w-md border-none shadow-2xl bg-amber-100 w-[calc(100%-2rem)]">
         <DialogHeader>
           <DialogTitle class="flex items-center gap-2 text-red-700">
             <XCircle class="h-5 w-5" />

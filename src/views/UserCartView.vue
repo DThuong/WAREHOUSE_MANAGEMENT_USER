@@ -745,7 +745,7 @@ input[type="number"] {
 /* ── Mobile (≤ 640px) ── */
 @media (max-width: 640px) {
   .page-header {
-    padding-top: 0.5rem;  /* hoặc 0 nếu muốn sát hơn */
+    padding-top: 0.5rem; 
   }
   .page-header {
     flex-direction: column;

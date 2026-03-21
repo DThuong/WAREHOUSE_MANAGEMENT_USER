@@ -14,7 +14,7 @@
         </Button>
       </div>
 
-      <div v-else class="space-y-6">
+      <div v-else class="space-y-6 mt-6">
         <!-- Header -->
         <Card class="border-none shadow-xl" style="background: linear-gradient(135deg, #E8F4FA 0%, #ffffff 100%);">
           <CardContent class="pt-6">
@@ -25,11 +25,11 @@
                 @click="router.push('/user/orders')"
               >
                 <ArrowLeft class="h-4 w-4" />
-                Quay lại Đơn Hàng
+                Quay lại
               </Button>
               <Badge 
                 :variant="getStatusVariant(orderStore.currentOrder.status)"
-                class="border-none px-4 py-2 shadow-lg text-center status-tag-large"
+                class="border-none! px-3! py-1.5! shadow-lg text-center text-sm! status-tag-large"
                 :style="getStatusStyle(orderStore.currentOrder.status)"
               >
                 {{ getStatusLabel(orderStore.currentOrder.status) }}
@@ -149,7 +149,7 @@
             <CardTitle class="text-blue-900">Hình Ảnh Đơn Hàng</CardTitle>
           </CardHeader>
           <CardContent>
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
               <img 
                 v-for="(img, index) in orderStore.currentOrder.image" 
                 :key="index"

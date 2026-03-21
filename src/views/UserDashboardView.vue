@@ -42,9 +42,9 @@
       </div>
 
       <!-- Recent Orders -->
-      <Card class="orders-card border-none shadow-lg mt-6 mb-6">
-        <CardHeader style="background: linear-gradient(135deg, #E8F4FA 0%, #ffffff 100%); border-bottom: 2px solid #BDE8F5;">
-          <div class="flex justify-between items-center p-4">
+      <Card class="border-none shadow-lg mt-6 mb-6">
+        <CardHeader style="border-bottom: 2px solid #BDE8F5;">
+          <div class="flex justify-between items-center">
             <CardTitle class="section-title">Recent Orders</CardTitle>
             <Button 
               variant="ghost"
@@ -56,7 +56,7 @@
             </Button>
           </div>
         </CardHeader>
-        <CardContent class="pt-4">
+        <CardContent>
           <!-- Loading State -->
           <div v-if="orderStore.loading" class="flex justify-center items-center py-12">
             <div class="text-center">
@@ -98,7 +98,8 @@
                 <TableRow 
                   v-for="order in recentOrders" 
                   :key="order.id" 
-                  class="hover:bg-blue-50/50 transition-colors border-b border-blue-100 last:border-none"
+                  class="hover:bg-blue-50/50 transition-colors border-b border-blue-100 last:border-none cursor-pointer"
+                  @click="viewOrder(order.id)"
                 >
                   <TableCell class="font-medium border-none" style="color: #374151;">#{{ order.id }}</TableCell>
                   <TableCell class="border-none" style="color: #6b7280;">{{ formatDate(order.orderDate) }}</TableCell>
@@ -114,7 +115,7 @@
                       class="hover:opacity-70 bg-blue-950 font-medium cursor-pointer text-white!"
                       @click="viewOrder(order.id)"
                     >
-                      Xem
+                      Xem chi tiết
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -127,6 +128,7 @@
                 v-for="order in recentOrders"
                 :key="order.id"
                 class="order-card-mobile"
+                @click="viewOrder(order.id)"
               >
                 <div class="order-card-mobile__header">
                   <span class="order-card-mobile__id">#{{ order.id }}</span>
