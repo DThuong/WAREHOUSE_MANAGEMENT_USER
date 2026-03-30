@@ -20,8 +20,8 @@
               :key="filter.value"
               :variant="selectedStatus === filter.value ? 'default' : 'outline'"
               :class="[
-                selectedStatus === filter.value 
-                  ? 'border-none shadow-md font-semibold text-white' 
+                selectedStatus === filter.value
+                  ? 'border-none shadow-md font-semibold text-white'
                   : 'hover:bg-blue-50 border-2'
               ]"
               :style="selectedStatus === filter.value ? 'background: linear-gradient(135deg, #1C4D8D 0%, #4988C4 100%);' : 'border-color: #4988C4; color: #1C4D8D; cursor: pointer;'"
@@ -43,7 +43,7 @@
             <h2 class="text-2xl font-semibold font-rubik" style="color: #1f2937;">Không Tìm Thấy Đơn Hàng Nào!</h2>
             <p class="text-lg" style="color: #6b7280;">Bạn chưa đặt đơn hàng nào</p>
           </div>
-          <Button 
+          <Button
             size="lg"
             class="mt-4 border-none shadow-lg font-semibold text-white cursor-pointer"
             style="background: linear-gradient(135deg, #1C4D8D 0%, #4988C4 100%);"
@@ -99,42 +99,56 @@
           </CardContent>
 
           <!-- Order Footer -->
-          <CardFooter class="flex lg:flex-row md:flex-row flex-col w-full justify-between items-center p-3 border-t pt-3! gap-3" style="background: linear-gradient(135deg, #E8F4FA 0%, #ffffff 100%); border-color: #BDE8F5;">
-            <Button 
-              variant="ghost" 
-              size="sm"
-              class="hover:bg-blue-200 font-medium cursor-pointer bg-blue-400/20 w-full"
-              style="color: #1C4D8D;"
-            >
-              Xem Chi Tiết
-              <ArrowRight class="h-4 w-4 ml-1" />
-            </Button>
-            <Button 
-              v-if="order.status.toLowerCase() === 'rejected'"
-              variant="ghost" 
-              size="sm"
-              class="hover:bg-red-100 font-medium cursor-pointer bg-red-50 w-full"
-              style="color: #991B1B;"
-              @click.stop="openRejectNote(order)"
-            >
-              <XCircle class="h-4 w-4 mr-1" />
-              Lý Do Hủy
-            </Button>
-            <!-- Nút đặt lại -->
-            <Button
-              variant="ghost"
-              size="sm"
-              class="hover:bg-green-100 font-medium cursor-pointer bg-green-50 w-full"
-              style="color: #065F46;"
-              :disabled="reorderLoading === order.id"
-              @click.stop="openReorder(order)"
-            >
-              <!-- Hiển thị spinner khi đang fetch -->
-              <Loader2 v-if="reorderLoading === order.id" class="h-4 w-4 mr-1 animate-spin" />
-              <RotateCcw v-else class="h-4 w-4 mr-1" />
-              {{ reorderLoading === order.id ? 'Đang tải...' : 'Đặt Lại' }}
-            </Button>
-          </CardFooter>
+          <CardFooter
+  class="flex flex-wrap w-full justify-between items-center p-3 border-t pt-3! gap-2"
+  style="background: linear-gradient(135deg, #E8F4FA 0%, #ffffff 100%); border-color: #BDE8F5;"
+>
+  <Button
+    variant="ghost"
+    size="sm"
+    class="hover:bg-blue-200 font-medium cursor-pointer bg-blue-400/20 flex-1 min-w-25"
+    style="color: #1C4D8D;"
+  >
+    Xem Chi Tiết
+    <!-- <ArrowRight class="h-4 w-4 ml-1" /> -->
+  </Button>
+
+  <Button
+    v-if="order.status.toLowerCase() === 'rejected'"
+    variant="ghost"
+    size="sm"
+    class="hover:bg-red-100 font-medium cursor-pointer bg-red-50 flex-1 min-w-25"
+    style="color: #991B1B;"
+    @click.stop="openRejectNote(order)"
+  >
+    <XCircle class="h-4 w-4 mr-1" />
+    Lý Do Hủy
+  </Button>
+
+  <Button
+    variant="ghost"
+    size="sm"
+    class="hover:bg-green-100 font-medium cursor-pointer bg-green-50 flex-1 min-w-25"
+    style="color: #065F46;"
+    :disabled="reorderLoading === order.id"
+    @click.stop="openReorder(order)"
+  >
+    <Loader2 v-if="reorderLoading === order.id" class="h-4 w-4 mr-1 animate-spin" />
+    <RotateCcw v-else class="h-4 w-4 mr-1" />
+    {{ reorderLoading === order.id ? 'Đang tải...' : 'Đặt Lại' }}
+  </Button>
+  <Button
+  v-if="order.status.toLowerCase() === 'pending'"
+  variant="ghost"
+  size="sm"
+  class="hover:bg-red-100 font-medium cursor-pointer bg-red-50 flex-1 min-w-25"
+  style="color: #991B1B;"
+  @click.stop="openDeleteDialog(order)"
+>
+  <Trash2 class="h-4 w-4 mr-1" />
+  Xóa Đơn
+</Button>
+</CardFooter>
         </Card>
       </div>
     </div>
@@ -161,7 +175,7 @@
           </p>
         </div>
         <DialogFooter>
-          <Button 
+          <Button
             class="w-full border-none text-white cursor-pointer"
             style="background: linear-gradient(135deg, #1C4D8D 0%, #4988C4 100%);"
             @click="rejectNoteDialogOpen = false"
@@ -171,6 +185,39 @@
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    <!-- Delete Confirm Dialog -->
+<Dialog v-model:open="deleteDialogOpen">
+  <DialogContent class="max-w-md border-none bg-amber-100 shadow-2xl w-[calc(100%-2rem)]">
+    <DialogHeader>
+      <DialogTitle class="flex items-center gap-2 text-red-700">
+        <Trash2 class="h-5 w-5" />
+        Xác Nhận Xóa Đơn Hàng
+      </DialogTitle>
+      <DialogDescription>
+        Bạn có chắc muốn xóa đơn hàng <span class="font-semibold">#{{ selectedDeleteOrder?.id }}</span> không? Hành động này không thể hoàn tác.
+      </DialogDescription>
+    </DialogHeader>
+    <DialogFooter class="flex flex-col sm:flex-row gap-2 mt-2">
+      <Button
+        variant="outline"
+        class="flex-1 cursor-pointer"
+        :disabled="deleteLoading"
+        @click="deleteDialogOpen = false"
+      >
+        Hủy Bỏ
+      </Button>
+      <Button
+        class="flex-1 border-none text-white cursor-pointer bg-red-600 hover:bg-red-700"
+        :disabled="deleteLoading"
+        @click="handleDeleteOrder"
+      >
+        <Loader2 v-if="deleteLoading" class="h-4 w-4 mr-1 animate-spin" />
+        <Trash2 v-else class="h-4 w-4 mr-1" />
+        {{ deleteLoading ? 'Đang xóa...' : 'Xác Nhận Xóa' }}
+      </Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
   </UserLayout>
 </template>
 
@@ -182,14 +229,15 @@ import UserLayout from '@/components/UserLayout.vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { 
-  Inbox, 
-  ShoppingBag, 
-  Calendar, 
-  Package, 
-  ArrowRight, 
+import {
+  Inbox,
+  ShoppingBag,
+  Calendar,
+  Package,
   RotateCcw,
-  Loader2
+  Loader2,
+  XCircle,
+  Trash2
 } from 'lucide-vue-next'
 import ReorderDialog from '@/views/ReorderDialog.vue'
 import type { Order } from '@/types/order.types'
@@ -199,7 +247,6 @@ import { OrderStatus } from '@/types/order.types'
 import { toast } from 'vue-sonner'
 import { orderAPI } from '@/services/orderAPI'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
-import { XCircle } from 'lucide-vue-next'
 
 // Define types
 type StatusFilterValue = 'all' | 'pending' | 'approved' | 'completed' | 'rejected'
@@ -217,6 +264,9 @@ const selectedOrderForReorder = ref<Order | null>(null)
 const reorderLoading = ref<number | null>(null)
 const rejectNoteDialogOpen = ref(false)
 const selectedRejectOrder = ref<Order | null>(null)
+const deleteDialogOpen = ref(false)
+const selectedDeleteOrder = ref<Order | null>(null)
+const deleteLoading = ref(false)
 
 const statusFilters: StatusFilter[] = [
   { label: 'Tất Cả', value: 'all' },
@@ -225,6 +275,28 @@ const statusFilters: StatusFilter[] = [
   { label: 'Hoàn Thành', value: 'completed' },
   { label: 'Đã Hủy', value: 'rejected' }
 ]
+
+const openDeleteDialog = (order: Order) => {
+  selectedDeleteOrder.value = order
+  deleteDialogOpen.value = true
+}
+
+// Hàm xử lý xóa
+const handleDeleteOrder = async () => {
+  if (!selectedDeleteOrder.value) return
+  deleteLoading.value = true
+  try {
+    await orderAPI.delete(selectedDeleteOrder.value.id)
+    ordersStore.removeOrder(selectedDeleteOrder.value.id)
+    deleteDialogOpen.value = false
+    toast.success('Đã xóa đơn hàng thành công!')
+  } catch (error) {
+    console.log(error);
+    toast.error('Không thể xóa đơn hàng. Vui lòng thử lại!')
+  } finally {
+    deleteLoading.value = false
+  }
+}
 
 const openRejectNote = (order: Order) => {
   selectedRejectOrder.value = order
