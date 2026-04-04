@@ -5,7 +5,15 @@
       <div class="container mx-auto px-4 sm:px-6 lg:px-8 max-w-8xl">
         <div class="flex justify-between items-center h-16">
           <!-- Logo -->
-          <div class="flex items-center gap-3 shrink-0">
+          <div 
+            class="flex items-center gap-3 shrink-0 cursor-pointer transition-all hover:opacity-80" 
+            @click="router.push('/user/dashboard')"
+          >
+            <img 
+              src="@/assets/images/logo_app_warehouse.png" 
+              alt="Logo" 
+              class="h-10 w-auto object-contain"
+            />
             <div>
               <h2 class="font-rubik text-xl sm:text-2xl font-bold text-white tracking-[3px] m-0">
                 DONGYANG

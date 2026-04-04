@@ -42,14 +42,6 @@
         </p>
       </div>
 
-       <!-- Results Info -->
-      <div v-if="filteredProducts.length > 0" class="flex justify-between items-center mb-6">
-        <p class="text-slate-600">
-          Hiển thị {{ ((currentPage - 1) * itemsPerPage) + 1 }} - 
-          {{ Math.min(currentPage * itemsPerPage, filteredProducts.length) }} 
-          trong tổng số {{ filteredProducts.length }} vật tư
-        </p>
-      </div>
 
       <!-- Products Grid -->
       <div v-if="filteredProducts.length > 0" class="products-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -140,46 +132,71 @@
         </Card>
       </div>
 
-      <!-- Pagination -->
-      <div v-if="totalPages > 1" class="pagination-wrapper flex justify-center items-center gap-2 mt-8 pb-8 flex-wrap">
-        <Button
-          variant="outline"
-          @click="prevPage"
-          :disabled="currentPage === 1"
-          class="h-10 w-10 p-0 cursor-pointer"
-        >
-          ←
-        </Button>
+      <!-- Pagination Section -->
+      <div v-if="totalPages > 1" class="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 pb-8">
+        <div class="text-sm font-medium" style="color: #6b7280;">
+          Hiển thị <span class="font-bold text-blue-800">{{ startIndex + 1 }}-{{ Math.min(endIndex, filteredProducts.length) }}</span> trên tổng số <span class="font-bold text-blue-800">{{ filteredProducts.length }}</span> vật tư
+        </div>
 
-        <template v-for="(page, index) in visiblePages" :key="index">
-          <!-- Ellipsis -->
-          <span 
-            v-if="page === '...'" 
-            class="h-10 w-10 flex items-center justify-center text-slate-400"
-          >
-            ...
-          </span>
-          
-          <!-- Page Number -->
+        <div class="flex items-center gap-2">
           <Button
-            v-else
-            :variant="currentPage === page ? 'default' : 'outline'"
-            @click="goToPage(page as number)"
-            class="h-10 w-10 p-0 cursor-pointer"
-            :class="currentPage === page ? 'bg-blue-600 text-white' : ''"
+            variant="outline"
+            size="icon"
+            class="h-9 w-9 border-2 cursor-pointer hover:bg-blue-50"
+            style="border-color: #BDE8F5;"
+            :disabled="currentPage === 1"
+            @click="goToPage(1)"
           >
-            {{ page }}
+            <ChevronsLeft class="h-4 w-4" style="color: #1C4D8D;" />
           </Button>
-        </template>
+          <Button
+            variant="outline"
+            size="icon"
+            class="h-9 w-9 border-2 cursor-pointer hover:bg-blue-50"
+            style="border-color: #BDE8F5;"
+            :disabled="currentPage === 1"
+            @click="prevPage"
+          >
+            <ChevronLeft class="h-4 w-4" style="color: #1C4D8D;" />
+          </Button>
 
-        <Button
-          variant="outline"
-          @click="nextPage"
-          :disabled="currentPage === totalPages"
-          class="h-10 w-10 p-0 cursor-pointer"
-        >
-          →
-        </Button>
+          <div class="flex items-center gap-1 mx-2">
+            <template v-for="(page, index) in visiblePages" :key="index">
+              <Button
+                v-if="page !== '...'"
+                :variant="currentPage === page ? 'default' : 'outline'"
+                class="h-9 w-9 p-0 font-bold transition-all duration-200"
+                :class="[currentPage === page ? 'shadow-md border-none text-white' : 'border-2 hover:bg-blue-50']"
+                :style="currentPage === page ? 'background: linear-gradient(135deg, #1C4D8D 0%, #4988C4 100%);' : 'border-color: #BDE8F5; color: #1C4D8D; cursor: pointer;'"
+                @click="goToPage(page as number)"
+              >
+                {{ page }}
+              </Button>
+              <span v-else class="px-1 text-slate-400">...</span>
+            </template>
+          </div>
+
+          <Button
+            variant="outline"
+            size="icon"
+            class="h-9 w-9 border-2 cursor-pointer hover:bg-blue-50"
+            style="border-color: #BDE8F5;"
+            :disabled="currentPage === totalPages"
+            @click="nextPage"
+          >
+            <ChevronRight class="h-4 w-4" style="color: #1C4D8D;" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            class="h-9 w-9 border-2 cursor-pointer hover:bg-blue-50"
+            style="border-color: #BDE8F5;"
+            :disabled="currentPage === totalPages"
+            @click="goToPage(totalPages)"
+          >
+            <ChevronsRight class="h-4 w-4" style="color: #1C4D8D;" />
+          </Button>
+        </div>
       </div>
     </div>
   </UserLayout>
@@ -195,7 +212,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Search, ShoppingCart, Check } from 'lucide-vue-next'
+import { Search, ShoppingCart, Check, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-vue-next'
 import { useCartStore } from '@/stores/cartStore'
 import { toast } from 'vue-sonner'
 
@@ -210,10 +227,11 @@ const totalPages = computed(() => {
   return Math.ceil(filteredProducts.value.length / itemsPerPage.value)
 })
 
+const startIndex = computed(() => (currentPage.value - 1) * itemsPerPage.value)
+const endIndex = computed(() => startIndex.value + itemsPerPage.value)
+
 const paginatedProducts = computed(() => {
-  const start = (currentPage.value - 1) * itemsPerPage.value
-  const end = start + itemsPerPage.value
-  return filteredProducts.value.slice(start, end)
+  return filteredProducts.value.slice(startIndex.value, endIndex.value)
 })
 
 const visiblePages = computed(() => {

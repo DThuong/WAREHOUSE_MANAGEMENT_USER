@@ -21,31 +21,39 @@
           </Button>
         </CardContent>
       </Card>
-
-      <!-- Stats Grid -->
-      <div class="stats-grid mt-6">
-        <Card 
-          v-for="stat in stats" 
-          :key="stat.label"
-          class="stat-card cursor-pointer transition-all hover:scale-[1.02] hover:-translate-y-1 border-none shadow-md"
-        >
-          <CardContent class="flex items-center gap-5 p-4">
-            <div class="stat-icon" :style="{ background: stat.color }">
-              <component :is="stat.icon" class="h-7 w-7" />
+      
+      <!-- Order Process Section (Image 1 Style) -->
+      <Card class="border-none shadow-lg mt-6 overflow-hidden">
+        <CardContent class="p-6">
+          <div class="relative">
+            <!-- Background Line -->
+            <div class="absolute top-12 left-0 right-0 h-1 bg-blue-100/50 rounded-full z-0 hidden md:block"></div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8 relative z-10">
+              <div v-for="(step, index) in processSteps" :key="index" class="flex flex-col items-center text-center group">
+                <div 
+                  class="w-16 h-16 rounded-full flex items-center justify-center mb-4 transition-all duration-300 group-hover:scale-110 shadow-lg relative"
+                  :style="{ background: step.color }"
+                >
+                  <component :is="step.icon" class="h-8 w-8 text-white" />
+                  <!-- Count Badge on Circle -->
+                  <div class="absolute -top-2 -right-2 bg-white text-blue-900 border-2 border-blue-100 rounded-full w-8 h-8 flex items-center justify-center font-bold text-sm shadow-md">
+                    {{ step.count }}
+                  </div>
+                </div>
+                <h3 class="font-bold text-lg mb-1" style="color: #1C4D8D;">{{ step.title }}</h3>
+                <p class="text-sm text-slate-500 leading-tight max-w-[200px]">{{ step.description }}</p>
+              </div>
             </div>
-            <div class="stat-content flex-1">
-              <div class="stat-value">{{ stat.value }}</div>
-              <div class="stat-label">{{ stat.label }}</div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <!-- Recent Orders -->
       <Card class="border-none shadow-lg mt-6 mb-6">
         <CardHeader style="border-bottom: 2px solid #BDE8F5;">
           <div class="flex justify-between items-center">
-            <CardTitle class="section-title">Recent Orders</CardTitle>
+            <CardTitle class="section-title py-3">Đơn Hàng Gần Đây</CardTitle>
             <Button 
               variant="ghost"
               class="hover:bg-blue-50 border-none bg-blue-100 shadow-2xl cursor-pointer "
@@ -182,7 +190,9 @@ import {
   Clock, 
   CheckCircle2, 
   Package, 
-  List 
+  List,
+  ThumbsUp,
+  Check
 } from 'lucide-vue-next'
 import { signalRService } from '@/services/orderNotiService'
 import type { updateStatusRealtime } from '@/types/notification.types'
@@ -192,31 +202,34 @@ const router = useRouter()
 const userStore = useUserStore()
 const orderStore = useOrderStore()
 
-// Computed stats from orderStore
-const stats = computed(() => [
+const processSteps = computed(() => [
+  { 
+    icon: Check, 
+    title: 'Đã Đặt', 
+    count: orderStore.totalOrders,
+    description: 'Đơn hàng đã được tạo thành công', 
+    color: 'linear-gradient(135deg, #4988C4 0%, #1C4D8D 100%)' 
+  },
   { 
     icon: Clock, 
-    label: 'Đang chờ', 
-    value: orderStore.pendingOrders.length.toString(), 
-    color: 'linear-gradient(135deg, #BDE8F5 0%, #A5D8F0 100%)' 
+    title: 'Chờ Duyệt', 
+    count: orderStore.pendingOrders.length,
+    description: 'Đang chờ quản lý phê duyệt duyệt', 
+    color: 'linear-gradient(135deg, #60A5FA 0%, #3B82F6 100%)' 
+  },
+  { 
+    icon: ThumbsUp, 
+    title: 'Đã Duyệt', 
+    count: orderStore.approvedOrders.length,
+    description: 'Đơn hàng đã được phê duyệt', 
+    color: 'linear-gradient(135deg, #34D399 0%, #10B981 100%)' 
   },
   { 
     icon: CheckCircle2, 
-    label: 'Xác Nhận', 
-    value: orderStore.approvedOrders.length.toString(), 
-    color: 'linear-gradient(135deg, #4988C4 0%, #5FA0D9 100%)' 
-  },
-  { 
-    icon: Package, 
-    label: 'Hoàn Thành', 
-    value: orderStore.completedOrders.length.toString(), 
-    color: 'linear-gradient(135deg, #1C4D8D 0%, #3A6BAF 100%)' 
-  },
-  { 
-    icon: List, 
-    label: 'Tổng Order', 
-    value: orderStore.totalOrders.toString(), 
-    color: 'linear-gradient(135deg, #0F2854 0%, #1C4D8D 100%)' 
+    title: 'Hoàn Thành', 
+    count: orderStore.completedOrders.length,
+    description: 'Đơn hàng đã hoàn tất', 
+    color: 'linear-gradient(135deg, #059669 0%, #047857 100%)' 
   }
 ])
 
@@ -354,45 +367,6 @@ onUnmounted(() => {
   font-weight: 500;
 }
 
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1.5rem;
-}
-
-.stat-card {
-  background: white;
-  transition: all 0.3s ease;
-}
-
-.stat-card:hover {
-  box-shadow: 0 10px 25px rgba(28, 77, 141, 0.2);
-}
-
-.stat-icon {
-  width: 64px;
-  height: 64px;
-  border-radius: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-}
-
-.stat-value {
-  font-size: 2.25rem;
-  font-weight: 700;
-  color: #1f2937;
-  line-height: 1;
-  margin-bottom: 0.25rem;
-}
-
-.stat-label {
-  font-size: 0.9375rem;
-  color: #6b7280;
-  font-weight: 600;
-}
 
 .section-title {
   font-family: 'Rubik', sans-serif;
@@ -459,23 +433,8 @@ onUnmounted(() => {
   }
 }
 
-@media (max-width: 1024px) {
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .banner-content {
-    flex-direction: column;
-    text-align: center;
-    gap: 1.5rem;
-  }
-}
 
 @media (max-width: 640px) {
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
-
   .welcome-title {
     font-size: 1.5rem;
   }
