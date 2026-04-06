@@ -488,7 +488,7 @@ const paginatedOrders = computed(() => {
 })
 
 // Reset to page 1 whenever filters change
-watch([selectedStatus, searchId, fromDate, toDate], ([_s, newId]) => {
+watch([selectedStatus, searchId, fromDate, toDate], ([, newId]) => {
   if (typeof newId === 'string' && parseInt(newId) < 1) {
     searchId.value = ''
   }

@@ -5,13 +5,13 @@
       <div class="container mx-auto px-4 sm:px-6 lg:px-8 max-w-8xl">
         <div class="flex justify-between items-center h-16">
           <!-- Logo -->
-          <div 
-            class="flex items-center gap-3 shrink-0 cursor-pointer transition-all hover:opacity-80" 
+          <div
+            class="flex items-center gap-3 shrink-0 cursor-pointer transition-all hover:opacity-80"
             @click="router.push('/user/dashboard')"
           >
-            <img 
-              src="@/assets/images/logo_app_warehouse.png" 
-              alt="Logo" 
+            <img
+              src="@/assets/images/logo_app_warehouse.png"
+              alt="Logo"
               class="h-10 w-auto object-contain"
             />
             <div>
@@ -24,13 +24,13 @@
 
           <!-- Navigation - Hidden on mobile -->
           <nav class="hidden lg:flex gap-2">
-            <router-link 
-              v-for="link in navLinks" 
+            <router-link
+              v-for="link in navLinks"
               :key="link.path"
               :to="link.path"
               class="flex items-center gap-2 px-4 py-2 rounded-lg text-white/90 no-underline font-medium transition-all duration-300 hover:bg-white/15"
-              :class="{ 
-                'bg-white shadow-lg font-semibold': $route.path === link.path 
+              :class="{
+                'bg-white shadow-lg font-semibold': $route.path === link.path
               }"
               :style="$route.path === link.path ? 'color: #1C4D8D;' : ''"
             >
@@ -50,8 +50,8 @@
                 @click="toggleNotifications"
               >
                 <Bell class="h-5 w-5" />
-                <Badge 
-                  v-if="notificationStore.unreadCount > 0" 
+                <Badge
+                  v-if="notificationStore.unreadCount > 0"
                   variant="destructive"
                   class="absolute -top-1 -right-1 min-w-5 h-5 rounded-full text-xs font-bold border-2 border-white px-1"
                   style="background: #ef4444;"
@@ -61,7 +61,7 @@
               </Button>
 
               <!-- Notification Dropdown -->
-              <div 
+              <div
                 v-if="showNotifications"
                 class="fixed md:absolute right-4 md:right-0 top-16 md:top-auto md:mt-2 left-4 md:left-auto md:w-96 w-auto bg-white rounded-xl md:rounded-xl shadow-2xl border md:border border-gray-200 overflow-hidden"
                 style="z-index: 100000; max-height: calc(100vh - 4rem);"
@@ -126,16 +126,16 @@
                             <h4 class="font-semibold text-sm text-gray-900 line-clamp-1">
                               {{ notification.type === 'OrderStatusUpdated' ? "Cập nhật trạng thái" : notification.type || 'Thông báo' }}
                             </h4>
-                            <div 
+                            <div
                               v-if="!notification.isRead"
                               class="w-2 h-2 bg-blue-600 rounded-full shrink-0 mt-1"
                             />
                           </div>
-                          
+
                           <p class="text-sm text-gray-700 mt-1 line-clamp-2">
                             {{ notification.message }}
                           </p>
-                          
+
                           <p class="text-xs text-gray-500 mt-2">
                             {{ formatTime(notification.createdAt) }}
                           </p>
@@ -147,7 +147,7 @@
               </div>
 
               <!-- Backdrop overlay -->
-              <div 
+              <div
                 v-if="showNotifications"
                 class="fixed inset-0 bg-transparent"
                 style="z-index: 99999;"
@@ -163,8 +163,8 @@
               @click="router.push('/user/cart')"
             >
               <ShoppingCart class="h-5 w-5" />
-              <Badge 
-                v-if="cartStore.totalItems > 0" 
+              <Badge
+                v-if="cartStore.totalItems > 0"
                 variant="destructive"
                 class="absolute -top-1 -right-1 min-w-5 h-5 rounded-full text-xs font-bold border-2 border-white px-1"
                 style="background: #4988C4;"
@@ -176,9 +176,9 @@
             <!-- User Menu -->
             <DropdownMenu>
               <DropdownMenuTrigger as-child>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
+                <Button
+                  variant="ghost"
+                  size="icon"
                   class="rounded-full hover:bg-white/15 w-10 h-10 transition-all duration-300"
                 >
                   <Avatar class="h-9 w-9 border-2 border-white/30 cursor-pointer">
@@ -188,12 +188,12 @@
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent 
-                align="end" 
+              <DropdownMenuContent
+                align="end"
                 class="w-64 dropdown-animate border-2 shadow-2xl"
                 style="z-index: 9999; background: linear-gradient(135deg, #E8F4FA 0%, #ffffff 100%); border-color: #BDE8F5;"
               >
-                <DropdownMenuItem 
+                <DropdownMenuItem
                   @click="handleLogout"
                   class="dropdown-item cursor-pointer py-3 px-4"
                 >
@@ -210,13 +210,13 @@
     <!-- Mobile Navigation -->
     <nav class="lg:hidden sticky top-16 z-40 bg-white shadow-sm overflow-hidden">
       <div class="mx-auto max-w-8xl flex items-center justify-center gap-1 overflow-x-auto py-2">
-        <router-link 
-          v-for="link in navLinks" 
+        <router-link
+          v-for="link in navLinks"
           :key="link.path"
           :to="link.path"
           class="flex items-center gap-2 px-4 py-2 rounded-lg text-gray-600 no-underline font-medium text-sm whitespace-nowrap transition-all duration-300"
-          :class="{ 
-            'text-white shadow-md font-semibold': $route.path === link.path 
+          :class="{
+            'text-white shadow-md font-semibold': $route.path === link.path
           }"
           :style="$route.path === link.path ? 'background: linear-gradient(135deg, #1C4D8D 0%, #4988C4 100%);' : ''"
         >
@@ -232,7 +232,7 @@
     </main>
 
     <!-- Footer -->
-    <footer class="text-center py-8 mt-auto" style="background: linear-gradient(135deg, #0F2854 0%, #1C4D8D 100%);">
+    <footer class="text-center py-8 mt-6" style="background: linear-gradient(135deg, #0F2854 0%, #1C4D8D 100%);">
       <p class="m-0 text-sm text-white/90 font-medium">&copy; Team IT DONGYANG</p>
     </footer>
   </div>
@@ -256,7 +256,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { 
+import {
   Home,
   ShoppingBag,
   List,
@@ -306,11 +306,11 @@ const formatTime = (dateString: string): string => {
   if (diffInMinutes < 60) return `${diffInMinutes} phút trước`
   if (diffInHours < 24) return `${diffInHours} giờ trước`
   if (diffInDays < 7) return `${diffInDays} ngày trước`
-  
-  return date.toLocaleDateString('vi-VN', { 
-    day: '2-digit', 
-    month: '2-digit', 
-    year: 'numeric' 
+
+  return date.toLocaleDateString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
   })
 }
 
@@ -319,7 +319,7 @@ const handleNotificationClick = async (notification: Notification) => {
   if (!notification.isRead) {
     notificationStore.markAsRead(notification.id)
   }
-  
+
   showNotifications.value = false
 
   if (!notification.orderId) {
@@ -348,15 +348,15 @@ const isAllRead = computed(() => {
 
 const handleLogout = async () => {
   const result = await userStore.logout()
-  
+
   if (result.success) {
     // Clear stores khi logout
     orderStore.clearOrders()
     notificationStore.clearAll()
-    
+
     // Stop SignalR connection
     await signalRService.stop()
-    
+
     router.push('/user/login')
   } else {
     console.error('Logout failed:', result.error)
@@ -367,7 +367,7 @@ const handleLogout = async () => {
 onMounted(async () => {
   // Fetch notifications
   await notificationStore.fetchNotifications()
-  
+
   // Start SignalR connection
   await signalRService.start()
 })
