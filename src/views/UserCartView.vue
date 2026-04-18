@@ -384,6 +384,10 @@ const getItemDescription = (item: CartItemLocal): string => {
 // Place Order
 // ========================
 const placeOrder = async () => {
+  // Prevent spam clicks
+  if (orderStore.loading) return
+  if (cartStore.isEmpty) return
+
   // ── Validate tên người order ──
   if (!nameWorker.value.trim()) {
     showNameError.value = true

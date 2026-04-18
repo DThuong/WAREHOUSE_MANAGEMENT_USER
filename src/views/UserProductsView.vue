@@ -48,7 +48,12 @@
         <Card 
           v-for="product in paginatedProducts"  
           :key="product.id"
-          class="overflow-hidden pt-0 transition-all duration-300 hover:-translate-y-2 hover:scale-[1.02] hover:shadow-2xl cursor-pointer border border-slate-200"
+          :id="`product-${product.id}`"
+          :class="[
+            'overflow-hidden pt-0 transition-all duration-300 hover:-translate-y-2 hover:scale-[1.02] hover:shadow-2xl cursor-pointer border',
+            activeProductId === product.id ? 'ring-2 ring-blue-500 shadow-2xl scale-[1.02] border-blue-500' : 'border-slate-200'
+          ]"
+          @click="handleProductClick(product.id!)"
         >
           <!-- Product Image -->
           <div class="relative h-72 overflow-hidden bg-slate-100">
@@ -120,7 +125,7 @@
                     : 'bg-blue-600 text-white cursor-pointer',
                   product.stockQty === 0 ? 'opacity-50 cursor-not-allowed' : ''
                 ]"
-                @click="addToCart(product)"
+                @click.stop="addToCart(product)"
                 class="w-full"
               >
                 <Check v-if="isInCart(product.id!)" class="h-4 w-4 mr-2" />
@@ -203,7 +208,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useItemStore } from '@/stores/itemStore'
 import { itemAPI } from '@/services/itemAPI'
 import type { Item } from '@/types/item.types'
@@ -219,8 +224,20 @@ import { toast } from 'vue-sonner'
 const itemStore = useItemStore()
 const cartStore = useCartStore()
 const searchQuery = ref('')
-const currentPage = ref(1)
+const currentPage = ref(parseInt(sessionStorage.getItem('user_products_page') || '1'))
 const itemsPerPage = ref(9)
+const activeProductId = ref<number | null>(parseInt(sessionStorage.getItem('user_products_active_id') || '0'))
+
+
+
+watch(currentPage, (newVal) => {
+  sessionStorage.setItem('user_products_page', newVal.toString())
+})
+
+const handleProductClick = (productId: number) => {
+  sessionStorage.setItem('user_products_active_id', productId.toString())
+  activeProductId.value = productId
+}
 
 // Computed for pagination
 const totalPages = computed(() => {
@@ -233,6 +250,18 @@ const endIndex = computed(() => startIndex.value + itemsPerPage.value)
 const paginatedProducts = computed(() => {
   return filteredProducts.value.slice(startIndex.value, endIndex.value)
 })
+
+const hasScrolled = ref(false)
+watch(paginatedProducts, async (products) => {
+  if (!hasScrolled.value && activeProductId.value && products.some(p => p.id === activeProductId.value)) {
+    await nextTick()
+    const el = document.getElementById(`product-${activeProductId.value}`)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      hasScrolled.value = true
+    }
+  }
+}, { immediate: true })
 
 const visiblePages = computed(() => {
   const pages: (number | string)[] = []

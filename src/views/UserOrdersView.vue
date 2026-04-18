@@ -114,8 +114,12 @@
           <Card
             v-for="order in paginatedOrders"
             :key="order.id"
-            class="group cursor-pointer transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl border-none shadow-md overflow-hidden flex flex-col"
-            style="border: 2px solid #BDE8F5;"
+            :id="`order-${order.id}`"
+            :class="[
+              'group cursor-pointer transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl border-none shadow-md overflow-hidden flex flex-col',
+              activeOrderId === order.id ? 'ring-2 ring-blue-500 shadow-2xl scale-[1.02]' : ''
+            ]"
+            :style="activeOrderId === order.id ? 'border: 2px solid #3B82F6;' : 'border: 2px solid #BDE8F5;'"
             @click="viewOrderDetail(order.id)"
           >
           <!-- Order Header -->
@@ -343,7 +347,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useOrderStore } from '@/stores/orderStore'
 import UserLayout from '@/components/UserLayout.vue'
@@ -391,8 +395,16 @@ const selectedStatus = ref<StatusFilterValue>('all')
 const searchId = ref<string>('')
 const fromDate = ref<string>('')
 const toDate = ref<string>('')
-const currentPage = ref(1)
+const currentPage = ref(parseInt(sessionStorage.getItem('user_orders_page') || '1'))
 const itemsPerPage = ref(6)
+
+const activeOrderId = ref<number | null>(parseInt(sessionStorage.getItem('user_orders_active_id') || '0'))
+
+
+
+watch(currentPage, (newVal) => {
+  sessionStorage.setItem('user_orders_page', newVal.toString())
+})
 
 const reorderDialogOpen = ref(false)
 const selectedOrderForReorder = ref<Order | null>(null)
@@ -487,6 +499,18 @@ const paginatedOrders = computed(() => {
   return filteredOrders.value.slice(startIndex.value, endIndex.value)
 })
 
+const hasScrolled = ref(false)
+watch(paginatedOrders, async (orders) => {
+  if (!hasScrolled.value && activeOrderId.value && orders.some(o => o.id === activeOrderId.value)) {
+    await nextTick()
+    const el = document.getElementById(`order-${activeOrderId.value}`)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      hasScrolled.value = true
+    }
+  }
+}, { immediate: true })
+
 // Reset to page 1 whenever filters change
 watch([selectedStatus, searchId, fromDate, toDate], ([, newId]) => {
   if (typeof newId === 'string' && parseInt(newId) < 1) {
@@ -557,6 +581,8 @@ const getStatusClass = (status: string): string => {
 }
 
 const viewOrderDetail = (orderId: number): void => {
+  sessionStorage.setItem('user_orders_active_id', orderId.toString())
+  activeOrderId.value = orderId
   router.push(`/user/orders/${orderId}`)
 }
 
