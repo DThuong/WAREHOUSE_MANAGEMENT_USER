@@ -158,6 +158,11 @@ export const useUserStore = defineStore('user', {
       this.authLoading = false
       this.error = null
       this.authError = null
+      
+      // Clear persistence
+      localStorage.removeItem('auth_token')
+      localStorage.removeItem('user_info')
+      sessionStorage.clear()
     }
   }
 })

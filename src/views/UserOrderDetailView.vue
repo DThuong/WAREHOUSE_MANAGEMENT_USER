@@ -102,7 +102,7 @@
                 class="order-item"
               >
                 <img 
-                  :src="detail.item.picture?.[0] || '/placeholder-image.jpg'" 
+                  :src="getItemImageUrl(detail.item.picture?.[0])" 
                   :alt="getItemName(detail.item)" 
                   class="item-image" 
                 />
@@ -153,7 +153,7 @@
               <img 
                 v-for="(img, index) in orderStore.currentOrder.image" 
                 :key="index"
-                :src="img"
+                :src="getItemImageUrl(img)"
                 alt="Order image"
                 class="w-full h-40 object-cover rounded-lg border-2 border-blue-200"
               />
@@ -170,6 +170,7 @@ import { computed, onMounted, onUnmounted, watch} from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useOrderStore } from '@/stores/orderStore'
 import { orderAPI } from '@/services/orderAPI'
+import { getItemImageUrl } from '@/utils/imageUtils'
 import { OrderStatus } from '@/types/order.types'
 import { toast } from 'vue-sonner'
 import UserLayout from '@/components/UserLayout.vue'

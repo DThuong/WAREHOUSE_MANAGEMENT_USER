@@ -136,7 +136,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -149,6 +149,11 @@ import { useUserStore } from '@/stores/userStore'
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
+
+onMounted(() => {
+  // Clear any existing session/localStorage when at login page
+  userStore.resetStore()
+})
 
 // Form state
 const username = ref<string>('')

@@ -59,7 +59,7 @@
           <div class="relative h-72 overflow-hidden bg-slate-100">
             <img
               v-if="product.picture && product.picture.length > 0 && product.picture[0]"
-              :src="getImageUrl(product.picture[0])"
+              :src="getItemImageUrl(product.picture[0])"
               :alt="getProductName(product)"
               class="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
               @error="handleImageError"
@@ -211,6 +211,7 @@
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useItemStore } from '@/stores/itemStore'
 import { itemAPI } from '@/services/itemAPI'
+import { getItemImageUrl } from '@/utils/imageUtils'
 import type { Item } from '@/types/item.types'
 import UserLayout from '@/components/UserLayout.vue'
 import { Input } from '@/components/ui/input'
@@ -358,11 +359,7 @@ const getProductDescription = (item: Item): string => {
   return 'No description available'
 }
 
-const getImageUrl = (imagePath: string): string => {
-  // Adjust this based on your API base URL
-  if (imagePath.startsWith('http')) return imagePath
-  return `${import.meta.env.VITE_API_BASE_URL}/api/Item/image/${imagePath}`
-}
+
 
 const handleImageError = (event: Event) => {
   const target = event.target as HTMLImageElement

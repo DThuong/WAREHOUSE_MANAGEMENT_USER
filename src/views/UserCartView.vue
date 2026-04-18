@@ -38,7 +38,7 @@
           >
             <CardContent class="flex gap-6 p-6 items-start">
               <img
-                :src="item.picture?.[0] || '/placeholder-image.jpg'"
+                :src="getItemImageUrl(item.picture?.[0])"
                 :alt="getItemName(item)"
                 class="item-image"
               />
@@ -210,6 +210,7 @@ import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCartStore } from '@/stores/cartStore'
 import { useOrderStore } from '@/stores/orderStore'
+import { getItemImageUrl } from '@/utils/imageUtils'
 import { orderAPI } from '@/services/orderAPI'
 import { toast } from 'vue-sonner'
 import UserLayout from '@/components/UserLayout.vue'
