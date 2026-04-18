@@ -5,13 +5,13 @@
       <!-- Welcome Banner -->
       <Card class="welcome-banner overflow-hidden border-none shadow-lg">
         <div class="banner-overlay" />
-        <CardContent class="banner-content relative z-10 p-4">
-          <div>
+        <CardContent class="relative z-10 p-5 md:p-6 flex flex-col md:flex-row justify-between items-center gap-4 md:gap-0">
+          <div class="w-full text-center md:text-left">
             <h1 class="welcome-title">Xin Chào, {{ userStore.currentUser?.username }}!</h1>
             <p class="welcome-subtitle">Chào mừng đến với kho Dong Yang !!!</p>
           </div>
           <Button
-            class="cursor-pointer transition-all hover:scale-105 border-none shadow-lg font-semibold text-white"
+            class="w-full md:w-auto cursor-pointer transition-all hover:scale-105 border-none shadow-lg font-semibold text-white"
             style="background: linear-gradient(135deg, #1C4D8D 0%, #4988C4 100%);"
             size="lg"
             @click="router.push('/user/products')"
@@ -342,11 +342,7 @@ onUnmounted(() => {
   background: linear-gradient(135deg, rgba(28, 77, 141, 0.05) 0%, rgba(73, 136, 196, 0.05) 100%);
 }
 
-.banner-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
+
 
 .welcome-title {
   font-family: 'Rubik', sans-serif;

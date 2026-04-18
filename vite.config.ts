@@ -24,6 +24,17 @@ export default defineConfig({
     },
     hmr: {
       overlay: true
+    },
+    proxy: {
+      '/api': {
+        target: 'http://172.16.162.123:7000',
+        changeOrigin: true
+      },
+      '/orderHub': {
+        target: 'http://172.16.162.123:7000',
+        ws: true,
+        changeOrigin: true
+      }
     }
   },
 })
