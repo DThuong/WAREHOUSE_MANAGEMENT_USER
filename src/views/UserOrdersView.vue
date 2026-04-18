@@ -583,6 +583,15 @@ const getStatusClass = (status: string): string => {
 const viewOrderDetail = (orderId: number): void => {
   sessionStorage.setItem('user_orders_active_id', orderId.toString())
   activeOrderId.value = orderId
+  
+  // Tự động xóa highlight sau 3s
+  setTimeout(() => {
+    if (activeOrderId.value === orderId) {
+      activeOrderId.value = null
+      sessionStorage.removeItem('user_orders_active_id')
+    }
+  }, 3000)
+
   router.push(`/user/orders/${orderId}`)
 }
 
@@ -625,6 +634,14 @@ onMounted(async () => {
   signalRService.on('OrderStatusUpdated', handleOrderStatusUpdated)
   // 3. Load orders
   ordersStore.fetchMyOrders()
+
+  // Nếu có highlight cũ (do quay lại từ trang chi tiết), chờ 3s rồi xóa
+  if (activeOrderId.value) {
+    setTimeout(() => {
+      activeOrderId.value = null
+      sessionStorage.removeItem('user_orders_active_id')
+    }, 3000)
+  }
 })
 
 onUnmounted(() => {

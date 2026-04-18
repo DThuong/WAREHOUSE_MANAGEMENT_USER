@@ -238,6 +238,14 @@ watch(currentPage, (newVal) => {
 const handleProductClick = (productId: number) => {
   sessionStorage.setItem('user_products_active_id', productId.toString())
   activeProductId.value = productId
+
+  // Tự động tắt highlight sau 3s
+  setTimeout(() => {
+    if (activeProductId.value === productId) {
+      activeProductId.value = null
+      sessionStorage.removeItem('user_products_active_id')
+    }
+  }, 3000)
 }
 
 // Computed for filtered products
@@ -407,6 +415,14 @@ watch(searchQuery, () => {
 
 onMounted(() => {
   fetchItems()
+
+  // Nếu có highlight từ trước (do quay lại trang), cũng chỉ để 3s rồi xóa
+  if (activeProductId.value) {
+    setTimeout(() => {
+      activeProductId.value = null
+      sessionStorage.removeItem('user_products_active_id')
+    }, 3000)
+  }
 })
 </script>
 
