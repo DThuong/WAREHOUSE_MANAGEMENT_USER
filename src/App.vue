@@ -2,6 +2,25 @@
   <div id="app">
     <router-view v-if="!isInitializing" />
     
+    <!-- Update Popup -->
+    <Transition name="slide-down">
+      <div v-if="isUpdateAvailable" class="update-popup">
+        <div class="update-content">
+          <p class="update-text">
+            Hi m.n, Hệ thống đã có phiên bản mới! Reload để cập nhật nhé 😊!
+          </p>
+          <p class="update-subtext">
+            Vui lòng tải lại trang để áp dụng các thay đổi và tính năng mới nhất.
+          </p>
+          <div class="update-actions">
+            <button @click="reloadPage" class="btn-reload">
+              Tải lại trang ngay
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
     <!-- Token Expiry Warning -->
     <Transition name="slide">
       <div v-if="showExpiryWarning" class="expiry-warning">
@@ -14,7 +33,7 @@
               Đóng
             </button>
           </div>
-        </div>S
+        </div>
       </div>
     </Transition>
 
@@ -41,8 +60,53 @@ const isInitializing = ref(true)
 const showExpiryWarning = ref(false)
 const timeRemaining = ref('')
 
+// Check update state
+const isUpdateAvailable = ref(false)
+let updateCheckInterval: number | null = null
+
 let warningTimeout: number | null = null
 let expiryTimeout: number | null = null
+
+const checkForUpdate = async () => {
+  if (isUpdateAvailable.value) return
+  
+  try {
+    const res = await fetch(`/?t=${new Date().getTime()}`, {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      }
+    })
+    
+    if (!res.ok) return
+    const html = await res.text()
+    
+    const doc = new DOMParser().parseFromString(html, 'text/html')
+    const newScripts = Array.from(doc.querySelectorAll('script[src]')).map(s => s.getAttribute('src'))
+    const currentScripts = Array.from(document.querySelectorAll('script[src]')).map(s => s.getAttribute('src'))
+    
+    // Find the main index hash from Vite build
+    const appScriptNew = newScripts.find(src => src?.match(/\/assets\/index-.*\.js$/))
+    const appScriptCurrent = currentScripts.find(src => src?.match(/\/assets\/index-.*\.js$/))
+    
+    if (appScriptNew && appScriptCurrent && appScriptNew !== appScriptCurrent) {
+      isUpdateAvailable.value = true
+    }
+  } catch (error) {
+    console.warn('Không thể kiểm tra phiên bản mới:', error)
+  }
+}
+
+const handleVisibilityChange = () => {
+  if (document.visibilityState === 'visible') {
+    checkForUpdate()
+  }
+}
+
+const reloadPage = () => {
+  window.location.reload()
+}
 
 onMounted(async () => {
   const token = localStorage.getItem('auth_token')
@@ -73,11 +137,17 @@ onMounted(async () => {
     }
   }
   
+  // Register update checker
+  updateCheckInterval = window.setInterval(checkForUpdate, 60000) // check every minute
+  document.addEventListener('visibilitychange', handleVisibilityChange)
+  
   isInitializing.value = false
 })
 
 onUnmounted(() => {
   clearTokenTimeouts()
+  if (updateCheckInterval) clearInterval(updateCheckInterval)
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
 })
 
 /**
@@ -146,6 +216,98 @@ const dismissWarning = () => {
   width: 100%;
   min-height: 100vh;
 }
+
+/* Update Popup */
+.update-popup {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10000;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  padding: 20px 24px;
+  min-width: 360px;
+  max-width: 90vw;
+  animation: pulse-border 2s infinite cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+@keyframes pulse-border {
+  0%, 100% { border: 1px solid rgba(59, 130, 246, 0.3); }
+  50% { border: 1px solid rgba(59, 130, 246, 1); }
+}
+
+.update-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.update-text {
+  margin: 0;
+  color: #111827;
+  font-weight: 700;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.update-subtext {
+  margin: 0;
+  color: #6b7280;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.update-actions {
+  margin-top: 8px;
+  width: 100%;
+}
+
+.btn-reload {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: #3b82f6;
+  color: white;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+}
+
+.btn-reload:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.3);
+}
+
+.btn-reload:active {
+  transform: translateY(0);
+}
+
+/* Update Transition */
+.slide-down-enter-active,
+.slide-down-leave-active {
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.slide-down-enter-from {
+  transform: translate(-50%, -100px);
+  opacity: 0;
+}
+
+.slide-down-leave-to {
+  transform: translate(-50%, -100px);
+  opacity: 0;
+}
+
 
 /* Expiry Warning Toast */
 .expiry-warning {
