@@ -21,12 +21,12 @@
         leave-from-class="opacity-100 translate-y-0"
         leave-to-class="opacity-0 -translate-y-2"
       >
-        <div 
-          v-if="alertMessage" 
+        <div
+          v-if="alertMessage"
           class="mb-6 p-3 rounded-xl border-2 flex items-center gap-2"
           :class="alertClasses"
         >
-          <component :is="alertIcon" class="h-5 w-5 flex-shrink-0" />
+          <component :is="alertIcon" class="h-5 w-5 shrink-0" />
           <p class="text-sm font-medium">{{ alertMessage }}</p>
         </div>
       </Transition>
@@ -37,7 +37,7 @@
         <div class="space-y-2">
           <Label for="username" class="text-sm font-semibold" style="color: #1C4D8D;">Username</Label>
           <div class="relative input-wrapper">
-            <Input 
+            <Input
               id="username"
               v-model="username"
               type="text"
@@ -48,8 +48,8 @@
                 'border-green-500 focus-visible:ring-green-500': username.length >= 1
               }"
             />
-            <CheckCircle2 
-              v-if="username.length >= 1" 
+            <CheckCircle2
+              v-if="username.length >= 1"
               class="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-green-500 animate-check"
             />
           </div>
@@ -63,7 +63,7 @@
         <div class="space-y-2">
           <Label for="password" class="text-sm font-semibold" style="color: #1C4D8D;">Password</Label>
           <div class="relative input-wrapper">
-            <Input 
+            <Input
               id="password"
               v-model="password"
               type="password"
@@ -75,12 +75,12 @@
                 'border-green-500 focus-visible:ring-green-500': password.length >= 3
               }"
             />
-            <CheckCircle2 
-              v-if="password.length >= 3" 
+            <CheckCircle2
+              v-if="password.length >= 3"
               class="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-green-500 animate-check"
             />
-            <XCircle 
-              v-if="password.length > 0 && password.length < 3" 
+            <XCircle
+              v-if="password.length > 0 && password.length < 3"
               class="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-red-500 animate-shake"
             />
           </div>
@@ -93,13 +93,13 @@
         <!-- Remember Me & Forgot Password -->
         <div class="flex items-center justify-between pt-2">
           <div class="flex items-center space-x-2">
-            <Checkbox 
-              id="remember" 
+            <Checkbox
+              id="remember"
               v-model:checked="rememberMe"
               class="border-2 data-[state=checked]:bg-[#4988C4] data-[state=checked]:border-[#4988C4]"
             />
-            <Label 
-              for="remember" 
+            <Label
+              for="remember"
               class="text-sm font-medium cursor-pointer"
               style="color: #6b7280;"
             >
@@ -112,7 +112,7 @@
         </div>
 
         <!-- Sign In Button -->
-        <Button 
+        <Button
           type="submit"
           :disabled="userStore.authLoading"
           class="w-full h-12 text-base font-semibold rounded-xl shadow-lg border-none transition-all duration-300 hover:scale-[1.02] hover:shadow-xl text-white mt-6"
@@ -125,8 +125,8 @@
         <!-- Sign Up Link -->
         <div class="text-center">
           <p class="text-sm text-gray-600">
-            Don't have an account? 
-            <strong class="font-semibold ml-1" style="color: #1C4D8D;">Contact IT</strong> 
+            Don't have an account?
+            <strong class="font-semibold ml-1" style="color: #1C4D8D;">Contact IT</strong>
             <span class="text-gray-400"> for support</span>
           </p>
         </div>
@@ -165,7 +165,7 @@ const AUTO_DISMISS_DELAY = 2000 // 2 giây
 // Computed alert styles với Tailwind
 const alertClasses = computed(() => {
   const baseClasses = 'transition-all duration-300'
-  
+
   switch (alertType.value) {
     case 'error':
       return `${baseClasses} bg-red-50 text-red-900 border-red-200`
@@ -191,7 +191,7 @@ const alertIcon = computed(() => {
 const showAlertWithAutoDismiss = (type: 'error' | 'warning' | 'info', message: string) => {
   alertType.value = type
   alertMessage.value = message
-  
+
   setTimeout(() => {
     alertMessage.value = ''
   }, AUTO_DISMISS_DELAY)
@@ -201,7 +201,7 @@ const showAlertWithAutoDismiss = (type: 'error' | 'warning' | 'info', message: s
 // Validation
 const validateForm = (): boolean => {
   let isValid = true
-  
+
   usernameError.value = ''
   passwordError.value = ''
 
@@ -234,13 +234,13 @@ const handleSignIn = async (): Promise<void> => {
 
   try {
     const deviceInfo = `Browser: ${navigator.userAgent}`
-    
+
     const result = await userStore.login({
       username: username.value,
       password: password.value,
       deviceInfo: deviceInfo
     })
-    
+
     if (result.success) {
       if (userStore.currentUser?.role === 'Admin') {
         await userStore.logout()
@@ -248,9 +248,9 @@ const handleSignIn = async (): Promise<void> => {
         password.value = ''
         return
       }
-      
+
       const redirectPath = route.query.redirect as string
-      
+
       if (redirectPath) {
         router.push(redirectPath)
       } else {
@@ -444,7 +444,7 @@ button[type="submit"]:disabled {
   .login-container {
     padding: 1.5rem;
   }
-  
+
   .logo-text {
     font-size: 1.5rem;
   }

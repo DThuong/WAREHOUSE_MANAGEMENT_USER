@@ -10,7 +10,7 @@
             <h1 class="welcome-title">Xin Chào, {{ userStore.currentUser?.username }}!</h1>
             <p class="welcome-subtitle">Chào mừng đến với kho Dong Yang !!!</p>
           </div>
-          <Button 
+          <Button
             class="cursor-pointer transition-all hover:scale-105 border-none shadow-lg font-semibold text-white"
             style="background: linear-gradient(135deg, #1C4D8D 0%, #4988C4 100%);"
             size="lg"
@@ -21,17 +21,17 @@
           </Button>
         </CardContent>
       </Card>
-      
+
       <!-- Order Process Section (Image 1 Style) -->
       <Card class="border-none shadow-lg mt-6 overflow-hidden">
         <CardContent class="p-6">
           <div class="relative">
             <!-- Background Line -->
             <div class="absolute top-12 left-0 right-0 h-1 bg-blue-100/50 rounded-full z-0 hidden md:block"></div>
-            
+
             <div class="grid grid-cols-1 md:grid-cols-4 gap-8 relative z-10">
               <div v-for="(step, index) in processSteps" :key="index" class="flex flex-col items-center text-center group">
-                <div 
+                <div
                   class="w-16 h-16 rounded-full flex items-center justify-center mb-4 transition-all duration-300 group-hover:scale-110 shadow-lg relative"
                   :style="{ background: step.color }"
                 >
@@ -42,7 +42,7 @@
                   </div>
                 </div>
                 <h3 class="font-bold text-lg mb-1" style="color: #1C4D8D;">{{ step.title }}</h3>
-                <p class="text-sm text-slate-500 leading-tight max-w-[200px]">{{ step.description }}</p>
+                <p class="text-sm text-slate-500 leading-tight max-w-50">{{ step.description }}</p>
               </div>
             </div>
           </div>
@@ -54,7 +54,7 @@
         <CardHeader style="border-bottom: 2px solid #BDE8F5;">
           <div class="flex justify-between items-center">
             <CardTitle class="section-title py-3">Đơn Hàng Gần Đây</CardTitle>
-            <Button 
+            <Button
               variant="ghost"
               class="hover:bg-blue-50 border-none bg-blue-100 shadow-2xl cursor-pointer "
               style="color: #1C4D8D; font-weight: 600;"
@@ -82,7 +82,7 @@
           <div v-else-if="recentOrders.length === 0" class="bg-slate-50 border border-slate-200 rounded-xl p-12 text-center">
             <Package class="h-16 w-16 text-slate-400 mx-auto mb-4" />
             <p class="text-slate-600 font-medium text-lg">Chưa có đơn hàng nào</p>
-            <Button 
+            <Button
               @click="router.push('/user/products')"
               class="mt-4"
               style="background: linear-gradient(135deg, #1C4D8D 0%, #4988C4 100%); color: #fff"
@@ -103,9 +103,9 @@
                 </TableRow>
               </TableHeader>
               <TableBody>
-                <TableRow 
-                  v-for="order in recentOrders" 
-                  :key="order.id" 
+                <TableRow
+                  v-for="order in recentOrders"
+                  :key="order.id"
                   class="hover:bg-blue-50/50 transition-colors border-b border-blue-100 last:border-none cursor-pointer"
                   @click="viewOrder(order.id)"
                 >
@@ -117,7 +117,7 @@
                     </Badge>
                   </TableCell>
                   <TableCell class="text-right border-none">
-                    <Button 
+                    <Button
                       variant="secondary"
                       size="sm"
                       class="hover:opacity-70 bg-blue-950 font-medium cursor-pointer text-white!"
@@ -149,7 +149,7 @@
                   {{ formatDate(order.orderDate) }}
                 </div>
                 <div class="order-card-mobile__footer">
-                  <Button 
+                  <Button
                     size="sm"
                     class="w-full hover:opacity-80 cursor-pointer font-semibold text-white"
                     style="background: linear-gradient(135deg, #1C4D8D 0%, #4988C4 100%);"
@@ -185,12 +185,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { 
-  ShoppingBag, 
-  Clock, 
-  CheckCircle2, 
-  Package, 
-  List,
+import {
+  ShoppingBag,
+  Clock,
+  CheckCircle2,
+  Package,
   ThumbsUp,
   Check
 } from 'lucide-vue-next'
@@ -203,33 +202,33 @@ const userStore = useUserStore()
 const orderStore = useOrderStore()
 
 const processSteps = computed(() => [
-  { 
-    icon: Check, 
-    title: 'Đã Đặt', 
+  {
+    icon: Check,
+    title: 'Đã Đặt',
     count: orderStore.totalOrders,
-    description: 'Đơn hàng đã được tạo thành công', 
-    color: 'linear-gradient(135deg, #4988C4 0%, #1C4D8D 100%)' 
+    description: 'Đơn hàng đã được tạo thành công',
+    color: 'linear-gradient(135deg, #4988C4 0%, #1C4D8D 100%)'
   },
-  { 
-    icon: Clock, 
-    title: 'Chờ Duyệt', 
+  {
+    icon: Clock,
+    title: 'Chờ Duyệt',
     count: orderStore.pendingOrders.length,
-    description: 'Đang chờ quản lý phê duyệt duyệt', 
-    color: 'linear-gradient(135deg, #60A5FA 0%, #3B82F6 100%)' 
+    description: 'Đang chờ quản lý phê duyệt duyệt',
+    color: 'linear-gradient(135deg, #60A5FA 0%, #3B82F6 100%)'
   },
-  { 
-    icon: ThumbsUp, 
-    title: 'Đã Duyệt', 
+  {
+    icon: ThumbsUp,
+    title: 'Đã Duyệt',
     count: orderStore.approvedOrders.length,
-    description: 'Đơn hàng đã được phê duyệt', 
-    color: 'linear-gradient(135deg, #34D399 0%, #10B981 100%)' 
+    description: 'Đơn hàng đã được phê duyệt',
+    color: 'linear-gradient(135deg, #34D399 0%, #10B981 100%)'
   },
-  { 
-    icon: CheckCircle2, 
-    title: 'Hoàn Thành', 
+  {
+    icon: CheckCircle2,
+    title: 'Hoàn Thành',
     count: orderStore.completedOrders.length,
-    description: 'Đơn hàng đã hoàn tất', 
-    color: 'linear-gradient(135deg, #059669 0%, #047857 100%)' 
+    description: 'Đơn hàng đã hoàn tất',
+    color: 'linear-gradient(135deg, #059669 0%, #047857 100%)'
   }
 ])
 
@@ -245,7 +244,7 @@ const recentOrders = computed(() => {
 const fetchOrders = async () => {
   orderStore.setLoading(true)
   orderStore.setError(null)
-  
+
   try {
     const orders = await orderAPI.getMyOrder()
     orderStore.setOrders(orders)
@@ -314,7 +313,7 @@ onMounted(async () => {
   }
   // Đăng ký listener realtime
   signalRService.on('OrderStatusUpdated', handleOrderStatusUpdated)
-  
+
   // Fetch orders như cũ
   fetchOrders()
 })

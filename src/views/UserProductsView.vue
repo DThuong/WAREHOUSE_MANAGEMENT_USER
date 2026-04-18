@@ -11,7 +11,7 @@
         <div class="header-actions flex gap-4">
           <div class="relative w-80">
             <Search class="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <Input 
+            <Input
               v-model="searchQuery"
               placeholder="Search products..."
               class="pl-10 h-12 rounded-xl border-slate-200 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-0 focus-visible:border-transparent transition"
@@ -45,8 +45,8 @@
 
       <!-- Products Grid -->
       <div v-if="filteredProducts.length > 0" class="products-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        <Card 
-          v-for="product in paginatedProducts"  
+        <Card
+          v-for="product in paginatedProducts"
           :key="product.id"
           :id="`product-${product.id}`"
           :class="[
@@ -57,24 +57,24 @@
         >
           <!-- Product Image -->
           <div class="relative h-72 overflow-hidden bg-slate-100">
-            <img 
+            <img
               v-if="product.picture && product.picture.length > 0 && product.picture[0]"
-              :src="getImageUrl(product.picture[0])" 
+              :src="getImageUrl(product.picture[0])"
               :alt="getProductName(product)"
-              class="w-full h-full object-cover transition-transform duration-300 hover:scale-110" 
+              class="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
               @error="handleImageError"
             />
             <div v-else class="w-full h-full flex items-center justify-center">
               <ShoppingCart class="h-20 w-20 text-slate-300" />
             </div>
-            <Badge 
-              v-if="product.stockQty === 0" 
+            <Badge
+              v-if="product.stockQty === 0"
               variant="destructive"
               class="absolute top-4 right-4 backdrop-blur-md"
             >
               Hết Hàng
             </Badge>
-            <Badge 
+            <Badge
               v-else-if="product.stockQty < 10"
               class="absolute top-4 right-4 backdrop-blur-md bg-amber-500"
             >
@@ -84,10 +84,10 @@
 
           <!-- Product Info -->
           <CardHeader class="space-y-2">
-            <Badge 
-              variant="outline" 
-              :class="product.type === 'ENG' 
-                ? 'w-fit text-blue-600 border-blue-600' 
+            <Badge
+              variant="outline"
+              :class="product.type === 'ENG'
+                ? 'w-fit text-blue-600 border-blue-600'
                 : 'w-fit text-amber-600 border-amber-600'"
               class="uppercase text-xs font-semibold tracking-wider"
             >
@@ -116,12 +116,12 @@
 
             <!-- Price & Button -->
             <div class="flex justify-between items-center pt-4 border-t">
-              <Button 
+              <Button
                 :variant="isInCart(product.id!) ? 'default' : 'default'"
                 :disabled="product.stockQty === 0"
                 :class="[
-                  isInCart(product.id!) 
-                    ? 'bg-green-600 text-white' 
+                  isInCart(product.id!)
+                    ? 'bg-green-600 text-white'
                     : 'bg-blue-600 text-white cursor-pointer',
                   product.stockQty === 0 ? 'opacity-50 cursor-not-allowed' : ''
                 ]"
@@ -239,6 +239,23 @@ const handleProductClick = (productId: number) => {
   activeProductId.value = productId
 }
 
+// Computed for filtered products
+const filteredProducts = computed(() => {
+  if (!searchQuery.value) return itemStore.items
+
+  const query = searchQuery.value.toLowerCase()
+  return itemStore.items.filter(item => {
+    const name = getProductName(item).toLowerCase()
+    const description = getProductDescription(item).toLowerCase()
+    const type = item.type.toLowerCase()
+
+    return name.includes(query) ||
+           description.includes(query) ||
+           type.includes(query)
+  })
+})
+
+
 // Computed for pagination
 const totalPages = computed(() => {
   return Math.ceil(filteredProducts.value.length / itemsPerPage.value)
@@ -267,7 +284,7 @@ const visiblePages = computed(() => {
   const pages: (number | string)[] = []
   const total = totalPages.value
   const current = currentPage.value
-  
+
   // Nếu tổng số trang <= 7, hiển thị tất cả
   if (total <= 7) {
     for (let i = 1; i <= total; i++) {
@@ -275,10 +292,10 @@ const visiblePages = computed(() => {
     }
     return pages
   }
-  
+
   // Luôn hiển thị trang đầu
   pages.push(1)
-  
+
   // Logic hiển thị các trang giữa
   if (current <= 3) {
     // Gần đầu: 1 2 3 4 ... 29
@@ -290,7 +307,7 @@ const visiblePages = computed(() => {
     // Ở giữa: 1 ... 5 6 7 ... 29
     pages.push('...', current - 1, current, current + 1, '...', total)
   }
-  
+
   return pages
 })
 
@@ -315,28 +332,11 @@ const prevPage = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 }
-
-// Computed for filtered products
-const filteredProducts = computed(() => {
-  if (!searchQuery.value) return itemStore.items
-  
-  const query = searchQuery.value.toLowerCase()
-  return itemStore.items.filter(item => {
-    const name = getProductName(item).toLowerCase()
-    const description = getProductDescription(item).toLowerCase()
-    const type = item.type.toLowerCase()
-    
-    return name.includes(query) || 
-           description.includes(query) || 
-           type.includes(query)
-  })
-})
-
 // Fetch items from API
 const fetchItems = async () => {
   itemStore.setLoading(true)
   itemStore.setError(null)
-  
+
   try {
     const items = await itemAPI.getAll()
     itemStore.setItems(items)
@@ -395,11 +395,11 @@ const getCartButtonLabel = (productId: number): string => {
 
 const addToCart = (product: Item) => {
   if (product.stockQty === 0) return
-  
+
   if (!product.id) return
-  
+
   if (!isInCart(product.id)) {
-    cartStore.addToCart(product, 1) 
+    cartStore.addToCart(product, 1)
     toast.success('Đã thêm vật tư vào giỏ hàng', { duration: 3000 })
   }
 }
@@ -439,7 +439,7 @@ onMounted(() => {
 
 .line-clamp-2 {
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -462,7 +462,7 @@ onMounted(() => {
   .pagination-wrapper {
     gap: 0.25rem;
   }
-  
+
   .pagination-wrapper button,
   .pagination-wrapper span {
     height: 2rem;

@@ -3,7 +3,7 @@
     <div class="cart-page animate-fade-in">
       <!-- Page Header -->
       <div class="page-header">
-        <Button 
+        <Button
           variant="ghost"
           class="cursor-pointer bg-blue-200 hover:bg-blue-400"
           @click="router.push('/user/products')"
@@ -18,7 +18,7 @@
           <ShoppingCart class="empty-icon h-20 w-20 mx-auto mb-6 text-muted-foreground" />
           <h2 class="text-2xl font-semibold mb-2">Chưa có vật tư nào trong giỏ hàng!</h2>
           <p class="text-muted-foreground mb-8">Hãy thêm vật tư vào giỏ hàng để tiếp tục</p>
-          <Button 
+          <Button
             class="btn-secondary bg-blue-300 cursor-pointer hover:bg-blue-400"
             @click="router.push('/user/products')"
           >
@@ -31,16 +31,16 @@
       <div v-else class="cart-content">
         <!-- Cart Items -->
         <div class="cart-items space-y-6">
-          <Card 
-            v-for="item in cartStore.items" 
+          <Card
+            v-for="item in cartStore.items"
             :key="item.id"
             class="cart-item border-none shadow-md"
           >
             <CardContent class="flex gap-6 p-6 items-start">
-              <img 
-                :src="item.picture?.[0] || '/placeholder-image.jpg'" 
-                :alt="getItemName(item)" 
-                class="item-image" 
+              <img
+                :src="item.picture?.[0] || '/placeholder-image.jpg'"
+                :alt="getItemName(item)"
+                class="item-image"
               />
 
               <div class="item-details flex-1">
@@ -139,7 +139,7 @@
                   </Button>
                 </div>
 
-                <Button 
+                <Button
                   variant="ghost"
                   size="icon"
                   class="text-destructive hover:text-destructive cursor-pointer hover:bg-red-100"
@@ -172,7 +172,7 @@
 
             <div class="form-group space-y-2">
               <Label for="nameWorker" class="form-label">Tên người order <span class="text-red-500">*</span></Label>
-              <Input 
+              <Input
                 id="nameWorker"
                 v-model="nameWorker"
                 placeholder="Nhập tên người order vật tư..."
@@ -182,7 +182,7 @@
               <p v-if="showNameError" class="text-sm text-red-500">Vui lòng nhập tên người order</p>
             </div>
 
-            <Button 
+            <Button
               class="btn-checkout w-full cursor-pointer"
               :disabled="orderStore.loading"
               @click="placeOrder"
@@ -220,7 +220,7 @@ import { Separator } from '@/components/ui/separator'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { 
+import {
   ArrowLeft,
   ShoppingCart,
   ShoppingBag,
@@ -749,7 +749,7 @@ input[type="number"] {
 /* ── Mobile (≤ 640px) ── */
 @media (max-width: 640px) {
   .page-header {
-    padding-top: 0.5rem; 
+    padding-top: 0.5rem;
   }
   .page-header {
     flex-direction: column;
