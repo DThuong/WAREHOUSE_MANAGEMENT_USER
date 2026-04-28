@@ -1,15 +1,14 @@
 <template>
   <UserLayout>
     <div class="order-detail-page animate-fade-in">
-      <div v-if="orderStore.loading" class="loading-state">
-        <Loader2 class="h-12 w-12 animate-spin text-blue-500" />
-        <p class="text-blue-600">Đang tải...</p>
+      <div v-if="orderStore.loading" class="loading-state py-12">
+        <AppLoading text="Đang tải thông tin chi tiết..." size="lg" />
       </div>
 
       <div v-else-if="!orderStore.currentOrder" class="loading-state">
         <AlertCircle class="h-12 w-12 text-red-500" />
         <p class="text-red-600">Không tìm thấy đơn hàng</p>
-        <Button @click="router.push('/user/orders')">
+        <Button @click="handleBack">
           Quay lại danh sách
         </Button>
       </div>
@@ -22,7 +21,7 @@
               <Button 
                 variant="ghost"
                 class="cursor-pointer text-gray-600 hover:text-blue-900 hover:bg-blue-300 transition-all duration-200 bg-blue-200"
-                @click="router.push('/user/orders')"
+                @click="handleBack"
               >
                 <ArrowLeft class="h-4 w-4" />
                 Quay lại
@@ -174,6 +173,7 @@ import { getItemImageUrl } from '@/utils/imageUtils'
 import { OrderStatus } from '@/types/order.types'
 import { toast } from 'vue-sonner'
 import UserLayout from '@/components/UserLayout.vue'
+import AppLoading from '@/components/AppLoading.vue'
 import { signalRService } from '@/services/orderNotiService'
 import type { updateStatusRealtime } from '@/types/notification.types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -306,12 +306,20 @@ const getStatusStyle = (status: string): string => {
   return styles[status] || ''
 }
 
+const handleBack = () => {
+  if (route.query.from === 'dashboard') {
+    router.push('/user/dashboard')
+  } else {
+    router.push('/user/orders')
+  }
+}
+
 const fetchOrderDetail = async (orderId?: number): Promise<void> => {
   const id = orderId ?? parseInt(route.params.id as string)
   
   if (isNaN(id)) {
     toast.error('ID đơn hàng không hợp lệ')
-    router.push('/user/orders')
+    handleBack()
     return
   }
 
@@ -323,7 +331,7 @@ const fetchOrderDetail = async (orderId?: number): Promise<void> => {
   } catch {
     // Order không tồn tại hoặc đã bị xóa
     toast.error('Đơn hàng này không tồn tại hoặc đã bị xóa')
-    router.push('/user/orders')
+    handleBack()
   } finally {
     orderStore.setLoading(false)
   }

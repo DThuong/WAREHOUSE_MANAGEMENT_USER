@@ -2,7 +2,8 @@ import api from './api'
 import type { 
   User, 
   LoginCredentials, 
-  ChangePasswordByAdminData
+  ChangePasswordByAdminData,
+  ChangePasswordByUserData
 } from '@/types/user.types'
 
 export const userAPI = {
@@ -26,5 +27,9 @@ export const userAPI = {
 
   changePasswordByAdmin(data: ChangePasswordByAdminData): Promise<{ message: string }> {
     return api.put('/api/Account/change-password-by-admin', data)
+  },
+
+  changePasswordByUser(data: ChangePasswordByUserData): Promise<{ message: string }> {
+    return api.put('/api/Account/change-password', data)
   }
 }

@@ -94,9 +94,8 @@
 
                 <!-- Notifications List -->
                 <div class="overflow-y-auto max-h-100 bg-white custom-scrollbar">
-                  <div v-if="notificationStore.loading" class="p-8 text-center bg-white">
-                    <Loader2 class="h-8 w-8 animate-spin mx-auto text-blue-600" />
-                    <p class="text-sm text-gray-500 mt-2">Đang tải thông báo...</p>
+                  <div v-if="notificationStore.loading" class="p-8 bg-white flex justify-center">
+                    <AppLoading text="Đang tải thông báo..." size="sm" />
                   </div>
 
                   <div v-else-if="notificationStore.notifications.length === 0" class="p-8 text-center bg-white">
@@ -174,7 +173,7 @@
             </Button>
 
             <!-- User Menu -->
-            <DropdownMenu>
+            <DropdownMenu v-model:open="showAvatarDropdown" :modal="false">
               <DropdownMenuTrigger as-child>
                 <Button
                   variant="ghost"
@@ -194,14 +193,69 @@
                 style="z-index: 9999; background: linear-gradient(135deg, #E8F4FA 0%, #ffffff 100%); border-color: #BDE8F5;"
               >
                 <DropdownMenuItem
+                  @click="openChangePasswordDialog"
+                  class="dropdown-item cursor-pointer py-3 px-4"
+                >
+                  <Key class="mr-3 h-5 w-5" style="color: #4988C4;" />
+                  <span class="font-medium" style="color: #4988C4;">Đổi mật khẩu</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
                   @click="handleLogout"
                   class="dropdown-item cursor-pointer py-3 px-4"
                 >
                   <LogOut class="mr-3 h-5 w-5" style="color: #e05d5d;" />
-                  <span class="font-medium" style="color: #e05d5d;">Logout</span>
+                  <span class="font-medium" style="color: #e05d5d;">Đăng xuất</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+
+            <!-- Modal đổi mật khẩu -->
+            <Dialog :open="showChangePasswordDialog" @update:open="showChangePasswordDialog = $event">
+              <DialogContent class="sm:max-w-[425px] border-none shadow-2xl outline-none" style="z-index: 100000; background: linear-gradient(135deg, #E8F4FA 0%, #ffffff 100%);">
+                <DialogHeader>
+                  <DialogTitle class="text-[#1C4D8D] font-bold text-xl">Đổi mật khẩu</DialogTitle>
+                </DialogHeader>
+                <div class="grid gap-4 py-4">
+                  <div class="space-y-2">
+                    <Label for="currentPassword">Mật khẩu hiện tại</Label>
+                    <div class="relative">
+                      <Input id="currentPassword" :type="showCurrentPassword ? 'text' : 'password'" v-model="changePasswordForm.currentPassword" class="border border-[#4988C4] focus-visible:ring-0 focus-visible:ring-offset-0 outline-none pr-10" />
+                      <button type="button" @click="showCurrentPassword = !showCurrentPassword" class="absolute right-3 top-1/2 -translate-y-1/2 text-[#4988C4] hover:text-blue-700 cursor-pointer">
+                        <EyeOff v-if="showCurrentPassword" class="h-4 w-4" />
+                        <Eye v-else class="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <div class="space-y-2">
+                    <Label for="newPassword">Mật khẩu mới</Label>
+                    <div class="relative">
+                      <Input id="newPassword" :type="showNewPassword ? 'text' : 'password'" v-model="changePasswordForm.newPassword" class="border border-[#4988C4] focus-visible:ring-0 focus-visible:ring-offset-0 outline-none pr-10" />
+                      <button type="button" @click="showNewPassword = !showNewPassword" class="absolute right-3 top-1/2 -translate-y-1/2 text-[#4988C4] hover:text-blue-700 cursor-pointer">
+                        <EyeOff v-if="showNewPassword" class="h-4 w-4" />
+                        <Eye v-else class="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <div class="space-y-2">
+                    <Label for="confirmPassword">Xác nhận mật khẩu mới</Label>
+                    <div class="relative">
+                      <Input id="confirmPassword" :type="showConfirmPassword ? 'text' : 'password'" v-model="changePasswordForm.confirmPassword" class="border border-[#4988C4] focus-visible:ring-0 focus-visible:ring-offset-0 outline-none pr-10" />
+                      <button type="button" @click="showConfirmPassword = !showConfirmPassword" class="absolute right-3 top-1/2 -translate-y-1/2 text-[#4988C4] hover:text-blue-700 cursor-pointer">
+                        <EyeOff v-if="showConfirmPassword" class="h-4 w-4" />
+                        <Eye v-else class="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" @click="showChangePasswordDialog = false" class="cursor-pointer focus-visible:ring-0 outline-none">Hủy</Button>
+                  <Button @click="handleChangePassword" :disabled="isChangingPassword" class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white focus-visible:ring-0 outline-none">
+                    <AppLoading v-if="isChangingPassword" type="inline" size="sm" class="mr-2 text-white" />
+                    Xác nhận
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
       </div>
@@ -257,6 +311,17 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { toast } from 'vue-sonner'
+import { userAPI } from '@/services/userAPI'
+import {
   Home,
   ShoppingBag,
   List,
@@ -265,7 +330,10 @@ import {
   Bell,
   BellOff,
   CheckCheck,
-  Loader2
+  Loader2,
+  Key,
+  Eye,
+  EyeOff
 } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -273,9 +341,65 @@ const userStore = useUserStore()
 const orderStore = useOrderStore()
 const cartStore = useCartStore()
 const notificationStore = useNotificationStore()
+import AppLoading from '@/components/AppLoading.vue'
+
+// State cho đổi mật khẩu
+const showChangePasswordDialog = ref(false)
+const isChangingPassword = ref(false)
+const showCurrentPassword = ref(false)
+const showNewPassword = ref(false)
+const showConfirmPassword = ref(false)
+
+const changePasswordForm = ref({
+  currentPassword: '',
+  newPassword: '',
+  confirmPassword: ''
+})
+
+const openChangePasswordDialog = () => {
+  changePasswordForm.value = {
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  }
+  showCurrentPassword.value = false
+  showNewPassword.value = false
+  showConfirmPassword.value = false
+  showChangePasswordDialog.value = true
+}
+
+const handleChangePassword = async () => {
+  if (!changePasswordForm.value.currentPassword || !changePasswordForm.value.newPassword || !changePasswordForm.value.confirmPassword) {
+    toast.error('Vui lòng điền đầy đủ thông tin')
+    return
+  }
+
+  if (changePasswordForm.value.newPassword !== changePasswordForm.value.confirmPassword) {
+    toast.error('Mật khẩu mới không khớp')
+    return
+  }
+
+  try {
+    isChangingPassword.value = true
+    await userAPI.changePasswordByUser({
+      currentPassword: changePasswordForm.value.currentPassword,
+      newPassword: changePasswordForm.value.newPassword
+    })
+    
+    toast.success('Đổi mật khẩu thành công')
+    showChangePasswordDialog.value = false
+  } catch (error: any) {
+    toast.error(error.message || 'Có lỗi xảy ra khi đổi mật khẩu')
+  } finally {
+    isChangingPassword.value = false
+  }
+}
 
 // Show/hide notifications dropdown
 const showNotifications = ref(false)
+
+// Show/hide avatar dropdown
+const showAvatarDropdown = ref(false)
 
 // Computed để lấy initial của user từ username
 const userInitial = computed(() => {
@@ -363,6 +487,15 @@ const handleLogout = async () => {
   }
 }
 
+const handleScroll = () => {
+  if (showNotifications.value) {
+    showNotifications.value = false
+  }
+  if (showAvatarDropdown.value) {
+    showAvatarDropdown.value = false
+  }
+}
+
 // Lifecycle
 onMounted(async () => {
   // Fetch notifications
@@ -370,11 +503,15 @@ onMounted(async () => {
 
   // Start SignalR connection
   await signalRService.start()
+  
+  window.addEventListener('scroll', handleScroll, { passive: true })
 })
 
 onUnmounted(async () => {
   // Stop SignalR when component unmounts
   await signalRService.stop()
+  
+  window.removeEventListener('scroll', handleScroll)
 })
 </script>
 

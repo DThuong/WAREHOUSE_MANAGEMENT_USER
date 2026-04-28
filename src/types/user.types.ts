@@ -27,3 +27,8 @@ export interface ApiError {
   status: number | undefined
   data: any
 }
+
+export interface ChangePasswordByUserData {
+  currentPassword: string
+  newPassword: string
+}

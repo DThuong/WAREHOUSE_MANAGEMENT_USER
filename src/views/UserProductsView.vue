@@ -9,23 +9,20 @@
           <p class="text-lg text-slate-500">Order vật tư ở đây nè !!!</p>
         </div>
         <div class="header-actions flex gap-4">
-          <div class="relative w-80">
-            <Search class="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <Input
+          <div class="w-80">
+            <AdvancedSearch
               v-model="searchQuery"
-              placeholder="Search products..."
-              class="pl-10 h-12 rounded-xl border-slate-200 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-0 focus-visible:border-transparent transition"
+              placeholder="Tìm kiếm vật tư..."
+              storageKey="products"
+              :suggestItems="productSuggestNames"
             />
           </div>
         </div>
       </div>
 
       <!-- Loading State -->
-      <div v-if="itemStore.loading" class="flex justify-center items-center min-h-100">
-        <div class="text-center">
-          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p class="text-slate-600">Đang tải vật tư...</p>
-        </div>
+      <div v-if="itemStore.loading" class="min-h-100 flex items-center justify-center">
+        <AppLoading text="Đang tải danh sách vật tư..." size="lg" />
       </div>
 
       <!-- Error State -->
@@ -93,9 +90,8 @@
             >
               {{ product.type === 'ENG' ? 'Hàng Kỹ Thuật' : 'Hàng Tiêu Dùng' }}
             </Badge>
-            <CardTitle class="text-xl font-rubik">{{ getProductName(product) }}</CardTitle>
-            <CardDescription class="text-base leading-relaxed line-clamp-2">
-              {{ getProductDescription(product) }}
+            <CardTitle class="text-xl font-rubik" v-html="highlightKeyword(getProductName(product), searchQuery)"></CardTitle>
+            <CardDescription class="text-base leading-relaxed line-clamp-2" v-html="highlightKeyword(getProductDescription(product), searchQuery)">
             </CardDescription>
           </CardHeader>
 
@@ -143,7 +139,7 @@
           Hiển thị <span class="font-bold text-blue-800">{{ startIndex + 1 }}-{{ Math.min(endIndex, filteredProducts.length) }}</span> trên tổng số <span class="font-bold text-blue-800">{{ filteredProducts.length }}</span> vật tư
         </div>
 
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap justify-center items-center gap-2 mt-4 sm:mt-0">
           <Button
             variant="outline"
             size="icon"
@@ -165,7 +161,7 @@
             <ChevronLeft class="h-4 w-4" style="color: #1C4D8D;" />
           </Button>
 
-          <div class="flex items-center gap-1 mx-2">
+          <div class="flex flex-wrap justify-center items-center gap-1 mx-2">
             <template v-for="(page, index) in visiblePages" :key="index">
               <Button
                 v-if="page !== '...'"
@@ -215,6 +211,9 @@ import { getItemImageUrl } from '@/utils/imageUtils'
 import type { Item } from '@/types/item.types'
 import UserLayout from '@/components/UserLayout.vue'
 import { Input } from '@/components/ui/input'
+import AdvancedSearch from '@/components/AdvancedSearch.vue'
+import AppLoading from '@/components/AppLoading.vue'
+import { fuzzyMatch, highlightKeyword } from '@/utils/searchUtils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -224,7 +223,7 @@ import { toast } from 'vue-sonner'
 
 const itemStore = useItemStore()
 const cartStore = useCartStore()
-const searchQuery = ref('')
+const searchQuery = ref(sessionStorage.getItem('user_products_search') || '')
 const currentPage = ref(parseInt(sessionStorage.getItem('user_products_page') || '1'))
 const itemsPerPage = ref(9)
 const activeProductId = ref<number | null>(parseInt(sessionStorage.getItem('user_products_active_id') || '0'))
@@ -248,19 +247,22 @@ const handleProductClick = (productId: number) => {
   }, 3000)
 }
 
-// Computed for filtered products
+const productSuggestNames = computed(() => {
+  return Array.from(new Set(itemStore.items.map(item => getProductName(item))))
+})
+
 const filteredProducts = computed(() => {
   if (!searchQuery.value) return itemStore.items
 
-  const query = searchQuery.value.toLowerCase()
+  const query = searchQuery.value
   return itemStore.items.filter(item => {
-    const name = getProductName(item).toLowerCase()
-    const description = getProductDescription(item).toLowerCase()
-    const type = item.type.toLowerCase()
+    const name = getProductName(item)
+    const description = getProductDescription(item)
+    const type = item.type
 
-    return name.includes(query) ||
-           description.includes(query) ||
-           type.includes(query)
+    return fuzzyMatch(query, name) ||
+           fuzzyMatch(query, description) ||
+           fuzzyMatch(query, type)
   })
 })
 
@@ -355,13 +357,13 @@ const fetchItems = async () => {
 }
 
 // Helper functions
-const getProductName = (item: Item): string => {
+function getProductName(item: Item): string {
   if (item.eng) return item.eng.partname
   if (item.com) return item.com.name
   return 'Unknown Product'
 }
 
-const getProductDescription = (item: Item): string => {
+function getProductDescription(item: Item): string {
   if (item.eng) return item.eng.description
   if (item.com) return item.com.specifications
   return 'No description available'
@@ -409,7 +411,8 @@ const addToCart = (product: Item) => {
   }
 }
 
-watch(searchQuery, () => {
+watch(searchQuery, (newVal) => {
+  sessionStorage.setItem('user_products_search', newVal)
   currentPage.value = 1
 })
 

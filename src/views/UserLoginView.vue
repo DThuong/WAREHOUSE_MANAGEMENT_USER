@@ -118,7 +118,7 @@
           class="w-full h-12 text-base font-semibold rounded-xl shadow-lg border-none transition-all duration-300 hover:scale-[1.02] hover:shadow-xl text-white mt-6"
           style="background: linear-gradient(135deg, #1C4D8D 0%, #4988C4 100%);"
         >
-          <Loader2 v-if="userStore.authLoading" class="mr-2 h-5 w-5 animate-spin" />
+          <AppLoading v-if="userStore.authLoading" type="inline" size="md" class="mr-2" color="white" />
           {{ userStore.authLoading ? 'Đang đăng nhập...' : 'Đăng nhập' }}
         </Button>
 
@@ -143,6 +143,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { CheckCircle2, XCircle, Loader2, AlertCircle, ShieldAlert } from 'lucide-vue-next'
+import AppLoading from '@/components/AppLoading.vue'
 import logoImg from '../assets/images/newLogo.jpg'
 import { useUserStore } from '@/stores/userStore'
 

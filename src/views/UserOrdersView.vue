@@ -17,19 +17,14 @@
           <div class="space-y-4 mt-2">
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div class="space-y-2">
-                <Label for="orderId" class="text-sm font-medium" style="color: #1C4D8D;">Mã đơn hàng</Label>
-                <div class="relative">
-                  <Input
-                    id="orderId"
-                    v-model="searchId"
-                    type="number"
-                    min="1"
-                    placeholder="Nhập mã đơn..."
-                    class="border-2 focus:ring-blue-400 pl-9"
-                    style="border-color: #BDE8F5;"
-                  />
-                  <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                </div>
+                <Label class="text-sm font-medium" style="color: #1C4D8D;">Tìm kiếm đơn hàng</Label>
+                <AdvancedSearch
+                  v-model="searchId"
+                  placeholder="Nhập mã đơn hoặc tên..."
+                  storageKey="orders"
+                  :suggestItems="orderSuggestItems"
+                  inputClass="h-10"
+                />
               </div>
               <div class="space-y-2">
                 <Label for="fromDate" class="text-sm font-medium" style="color: #1C4D8D;">Từ ngày</Label>
@@ -37,7 +32,7 @@
                   id="fromDate"
                   v-model="fromDate"
                   type="date"
-                  class="border-2 focus:ring-blue-400"
+                  class="border-2 focus:ring-blue-400 h-10"
                   style="border-color: #BDE8F5;"
                 />
               </div>
@@ -47,14 +42,14 @@
                   id="toDate"
                   v-model="toDate"
                   type="date"
-                  class="border-2 focus:ring-blue-400"
+                  class="border-2 focus:ring-blue-400 h-10"
                   style="border-color: #BDE8F5;"
                 />
               </div>
               <div class="flex items-end gap-2">
                 <Button
                   variant="outline"
-                  class="flex-1 border-2 hover:bg-blue-50 font-semibold cursor-pointer"
+                  class="flex-1 border-2 hover:bg-blue-50 font-semibold cursor-pointer h-10"
                   style="border-color: #4988C4; color: #1C4D8D;"
                   @click="resetFilters"
                 >
@@ -126,8 +121,7 @@
           <CardHeader class="space-y-3" style="background: linear-gradient(135deg, #E8F4FA 0%, #ffffff 100%);">
             <div class="flex justify-between items-start p-3">
               <div class="space-y-2">
-                <CardTitle class="text-xl font-rubik" style="color: #1f2937;">
-                  Đơn hàng #{{ order.id }}
+                <CardTitle class="text-xl font-rubik" style="color: #1f2937;" v-html="highlightKeyword(`Đơn hàng #${order.id}`, searchId)">
                 </CardTitle>
                 <CardDescription class="flex items-center gap-1.5">
                   <Calendar class="h-3.5 w-3.5" />
@@ -152,7 +146,7 @@
 
             <!-- Show worker name if available -->
             <div v-if="order.nameWorker" class="text-sm" style="color: #6b7280;">
-              <span class="font-medium">Người đặt:</span> {{ order.nameWorker }}
+              <span class="font-medium">Người đặt:</span> <span v-html="highlightKeyword(order.nameWorker, searchId)"></span>
             </div>
           </CardContent>
 
@@ -190,7 +184,7 @@
               :disabled="reorderLoading === order.id"
               @click.stop="openReorder(order)"
             >
-              <Loader2 v-if="reorderLoading === order.id" class="h-4 w-4 mr-1 animate-spin" />
+              <AppLoading v-if="reorderLoading === order.id" type="inline" size="sm" class="mr-1" />
               <RotateCcw v-else class="h-4 w-4 mr-1" />
               {{ reorderLoading === order.id ? 'Đang tải...' : 'Đặt Lại' }}
             </Button>
@@ -215,7 +209,7 @@
           Hiển thị <span class="font-bold text-blue-800">{{ startIndex + 1 }}-{{ Math.min(endIndex, filteredOrders.length) }}</span> trên tổng số <span class="font-bold text-blue-800">{{ filteredOrders.length }}</span> đơn hàng
         </div>
 
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap justify-center items-center gap-2 mt-4 sm:mt-0">
           <Button
             variant="outline"
             size="icon"
@@ -237,7 +231,7 @@
             <ChevronLeft class="h-4 w-4" style="color: #1C4D8D;" />
           </Button>
 
-          <div class="flex items-center gap-1 mx-2">
+          <div class="flex flex-wrap justify-center items-center gap-1 mx-2">
             <template v-for="page in displayedPages" :key="page">
               <Button
                 v-if="page !== -1"
@@ -336,7 +330,7 @@
         :disabled="deleteLoading"
         @click="handleDeleteOrder"
       >
-        <Loader2 v-if="deleteLoading" class="h-4 w-4 mr-1 animate-spin" />
+        <AppLoading v-if="deleteLoading" type="inline" size="sm" class="mr-1" />
         <Trash2 v-else class="h-4 w-4 mr-1" />
         {{ deleteLoading ? 'Đang xóa...' : 'Xác Nhận Xóa' }}
       </Button>
@@ -371,6 +365,7 @@ import {
   ChevronsRight
 } from 'lucide-vue-next'
 import ReorderDialog from '@/views/ReorderDialog.vue'
+import AppLoading from '@/components/AppLoading.vue'
 import type { Order } from '@/types/order.types'
 import { signalRService } from '@/services/orderNotiService'
 import type { updateStatusRealtime } from '@/types/notification.types'
@@ -380,6 +375,8 @@ import { orderAPI } from '@/services/orderAPI'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import AdvancedSearch from '@/components/AdvancedSearch.vue'
+import { fuzzyMatch, highlightKeyword } from '@/utils/searchUtils'
 
 // Define types
 type StatusFilterValue = 'all' | 'pending' | 'approved' | 'completed' | 'rejected'
@@ -391,12 +388,18 @@ interface StatusFilter {
 
 const router = useRouter()
 const ordersStore = useOrderStore()
-const selectedStatus = ref<StatusFilterValue>('all')
-const searchId = ref<string>('')
-const fromDate = ref<string>('')
-const toDate = ref<string>('')
+const selectedStatus = ref<StatusFilterValue>((sessionStorage.getItem('user_orders_status') as StatusFilterValue) || 'all')
+const searchId = ref<string>(sessionStorage.getItem('user_orders_search') || '')
+const fromDate = ref<string>(sessionStorage.getItem('user_orders_from') || '')
+const toDate = ref<string>(sessionStorage.getItem('user_orders_to') || '')
 const currentPage = ref(parseInt(sessionStorage.getItem('user_orders_page') || '1'))
 const itemsPerPage = ref(6)
+
+// Watchers for session storage
+watch(selectedStatus, (val) => sessionStorage.setItem('user_orders_status', val))
+watch(searchId, (val) => sessionStorage.setItem('user_orders_search', val))
+watch(fromDate, (val) => sessionStorage.setItem('user_orders_from', val))
+watch(toDate, (val) => sessionStorage.setItem('user_orders_to', val))
 
 const activeOrderId = ref<number | null>(parseInt(sessionStorage.getItem('user_orders_active_id') || '0'))
 
@@ -458,12 +461,22 @@ const resetFilters = () => {
   currentPage.value = 1
 }
 
+const orderSuggestItems = computed(() => {
+  const ids = ordersStore.orders.map(o => `Đơn hàng #${o.id}`)
+  const workers = ordersStore.orders.filter(o => o.nameWorker).map(o => o.nameWorker as string)
+  return Array.from(new Set([...ids, ...workers]))
+})
+
 const filteredOrders = computed(() => {
   let list = ordersStore.orders
   
-  // 1. Filter by Search ID
+  // 1. Filter by Search ID (Fuzzy Match ID or Worker Name)
   if (searchId.value) {
-    list = list.filter(order => order.id.toString().includes(searchId.value))
+    list = list.filter(order => 
+      fuzzyMatch(searchId.value, order.id.toString()) || 
+      (order.nameWorker && fuzzyMatch(searchId.value, order.nameWorker)) ||
+      fuzzyMatch(searchId.value, `Đơn hàng #${order.id}`)
+    )
   }
 
   // 2. Filter by Date Range

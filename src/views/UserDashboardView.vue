@@ -66,11 +66,8 @@
         </CardHeader>
         <CardContent>
           <!-- Loading State -->
-          <div v-if="orderStore.loading" class="flex justify-center items-center py-12">
-            <div class="text-center">
-              <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p class="text-slate-600">Đang tải đơn hàng...</p>
-            </div>
+          <div v-if="orderStore.loading" class="py-12">
+            <AppLoading text="Đang tải danh sách đơn hàng..." size="md" />
           </div>
 
           <!-- Error State -->
@@ -106,7 +103,9 @@
                 <TableRow
                   v-for="order in recentOrders"
                   :key="order.id"
-                  class="hover:bg-blue-50/50 transition-colors border-b border-blue-100 last:border-none cursor-pointer"
+                  class="transition-colors border-b border-blue-100 last:border-none cursor-pointer"
+                  :class="activeOrderId === order.id ? 'bg-[#E8F4FA]' : 'hover:bg-blue-50/50'"
+                  :id="`dashboard-order-${order.id}`"
                   @click="viewOrder(order.id)"
                 >
                   <TableCell class="font-medium border-none" style="color: #374151;">#{{ order.id }}</TableCell>
@@ -136,6 +135,8 @@
                 v-for="order in recentOrders"
                 :key="order.id"
                 class="order-card-mobile"
+                :class="{ 'ring-2 ring-[#4988C4] bg-[#E8F4FA]': activeOrderId === order.id }"
+                :id="`dashboard-order-mobile-${order.id}`"
                 @click="viewOrder(order.id)"
               >
                 <div class="order-card-mobile__header">
@@ -168,12 +169,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/userStore'
 import { useOrderStore } from '@/stores/orderStore'
 import { orderAPI } from '@/services/orderAPI'
 import UserLayout from '@/components/UserLayout.vue'
+import AppLoading from '@/components/AppLoading.vue'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -200,6 +202,8 @@ import { OrderStatus } from '@/types/order.types'
 const router = useRouter()
 const userStore = useUserStore()
 const orderStore = useOrderStore()
+
+const activeOrderId = ref<number | null>(parseInt(sessionStorage.getItem('user_dashboard_active_id') || '0'))
 
 const processSteps = computed(() => [
   {
@@ -298,7 +302,9 @@ const getStatusClass = (status: string): string => {
 }
 
 const viewOrder = (id: number) => {
-  router.push(`/user/orders/${id}`)
+  sessionStorage.setItem('user_dashboard_active_id', id.toString())
+  activeOrderId.value = id
+  router.push(`/user/orders/${id}?from=dashboard`)
 }
 
 // Handler cập nhật realtime - giống OrdersView
@@ -316,6 +322,17 @@ onMounted(async () => {
 
   // Fetch orders như cũ
   fetchOrders()
+
+  // Scroll to active order
+  if (activeOrderId.value) {
+    setTimeout(() => {
+      const element = document.getElementById(`dashboard-order-${activeOrderId.value}`) || 
+                      document.getElementById(`dashboard-order-mobile-${activeOrderId.value}`)
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+    }, 500)
+  }
 })
 
 onUnmounted(() => {

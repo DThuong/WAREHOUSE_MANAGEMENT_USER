@@ -188,7 +188,7 @@
               @click="placeOrder"
             >
               <Check v-if="!orderStore.loading" class="mr-2 h-4 w-4" />
-              <Loader2 v-else class="mr-2 h-4 w-4 animate-spin" />
+              <AppLoading v-else type="inline" size="sm" class="mr-2 text-white" />
               Tạo Đơn Hàng
             </Button>
 
@@ -214,6 +214,7 @@ import { getItemImageUrl } from '@/utils/imageUtils'
 import { orderAPI } from '@/services/orderAPI'
 import { toast } from 'vue-sonner'
 import UserLayout from '@/components/UserLayout.vue'
+import AppLoading from '@/components/AppLoading.vue'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
