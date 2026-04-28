@@ -149,14 +149,29 @@
           </CardHeader>
           <CardContent>
             <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              <img 
+              <div 
                 v-for="(img, index) in orderStore.currentOrder.image" 
                 :key="index"
-                :src="getItemImageUrl(img)"
-                alt="Order image"
-                class="w-full h-40 object-cover rounded-lg border-2 border-blue-200"
-              />
+                class="relative group cursor-pointer overflow-hidden rounded-lg border-2 border-blue-200 h-40"
+                @click="openImagePreview(index)"
+              >
+                <img 
+                  :src="getItemImageUrl(img)"
+                  alt="Order image"
+                  class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                />
+                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                  <Eye class="text-white w-8 h-8 drop-shadow-md" />
+                </div>
+              </div>
             </div>
+
+            <!-- Image Preview Viewer -->
+            <ImagePreviewViewer
+              v-model:open="previewOpen"
+              :images="fullImageUrls"
+              :initial-index="previewInitialIndex"
+            />
           </CardContent>
         </Card>
       </div>
@@ -165,7 +180,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, watch} from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch} from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useOrderStore } from '@/stores/orderStore'
 import { orderAPI } from '@/services/orderAPI'
@@ -174,6 +189,7 @@ import { OrderStatus } from '@/types/order.types'
 import { toast } from 'vue-sonner'
 import UserLayout from '@/components/UserLayout.vue'
 import AppLoading from '@/components/AppLoading.vue'
+import ImagePreviewViewer from '@/components/ImagePreviewViewer.vue'
 import { signalRService } from '@/services/orderNotiService'
 import type { updateStatusRealtime } from '@/types/notification.types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -188,7 +204,8 @@ import {
   Loader2,
   AlertCircle,
   Target,
-  Timer
+  Timer,
+  Eye
 } from 'lucide-vue-next'
 import type { Component } from 'vue'
 
@@ -220,6 +237,19 @@ interface TimelineStage {
 const router = useRouter()
 const route = useRoute()
 const orderStore = useOrderStore()
+
+// Preview state
+const previewOpen = ref(false)
+const previewInitialIndex = ref(0)
+
+const fullImageUrls = computed(() => {
+  return orderStore.currentOrder?.image?.map(img => getItemImageUrl(img)) || []
+})
+
+const openImagePreview = (index: number) => {
+  previewInitialIndex.value = index
+  previewOpen.value = true
+}
 
 const statusTimeline = computed<TimelineStage[]>(() => {
   const status = orderStore.currentOrder?.status || OrderStatus.PENDING
