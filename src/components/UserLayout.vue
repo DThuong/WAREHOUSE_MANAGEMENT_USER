@@ -330,7 +330,6 @@ import {
   Bell,
   BellOff,
   CheckCheck,
-  Loader2,
   Key,
   Eye,
   EyeOff
@@ -385,11 +384,12 @@ const handleChangePassword = async () => {
       currentPassword: changePasswordForm.value.currentPassword,
       newPassword: changePasswordForm.value.newPassword
     })
-    
+
     toast.success('Đổi mật khẩu thành công')
     showChangePasswordDialog.value = false
-  } catch (error: any) {
-    toast.error(error.message || 'Có lỗi xảy ra khi đổi mật khẩu')
+  } catch (error: Error | unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra khi đổi mật khẩu'
+    toast.error(errorMessage || 'Có lỗi xảy ra khi đổi mật khẩu')
   } finally {
     isChangingPassword.value = false
   }
@@ -503,14 +503,14 @@ onMounted(async () => {
 
   // Start SignalR connection
   await signalRService.start()
-  
+
   window.addEventListener('scroll', handleScroll, { passive: true })
 })
 
 onUnmounted(async () => {
   // Stop SignalR when component unmounts
   await signalRService.stop()
-  
+
   window.removeEventListener('scroll', handleScroll)
 })
 </script>
