@@ -142,9 +142,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
-import { CheckCircle2, XCircle, Loader2, AlertCircle, ShieldAlert } from 'lucide-vue-next'
+import { CheckCircle2, XCircle, AlertCircle, ShieldAlert } from 'lucide-vue-next'
 import AppLoading from '@/components/AppLoading.vue'
-import logoImg from '../assets/images/newLogo.jpg'
+import logoImg from '../assets/images/newLogo.png'
 import { useUserStore } from '@/stores/userStore'
 
 const router = useRouter()

@@ -26,9 +26,6 @@
       <Card class="border-none shadow-lg mt-6 overflow-hidden">
         <CardContent class="p-6">
           <div class="relative">
-            <!-- Background Line -->
-            <div class="absolute top-12 left-0 right-0 h-1 bg-blue-100/50 rounded-full z-0 hidden md:block"></div>
-
             <div class="grid grid-cols-1 md:grid-cols-4 gap-8 relative z-10">
               <div v-for="(step, index) in processSteps" :key="index" class="flex flex-col items-center text-center group">
                 <div
@@ -326,7 +323,7 @@ onMounted(async () => {
   // Scroll to active order
   if (activeOrderId.value) {
     setTimeout(() => {
-      const element = document.getElementById(`dashboard-order-${activeOrderId.value}`) || 
+      const element = document.getElementById(`dashboard-order-${activeOrderId.value}`) ||
                       document.getElementById(`dashboard-order-mobile-${activeOrderId.value}`)
       if (element) {
         element.scrollIntoView({ behavior: 'smooth', block: 'center' })

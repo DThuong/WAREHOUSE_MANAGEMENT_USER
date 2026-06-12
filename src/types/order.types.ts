@@ -2,7 +2,7 @@ import type { Item } from "./item.types"
 import type { User } from "./user.types"
 import type { machine } from "./line_machine.types"
 
-// Order Detail - chi tiết từng sản phẩm trong đơn hàng
+// Order Detail
 export interface OrderDetail {
   id: number
   orderId: number
@@ -11,11 +11,11 @@ export interface OrderDetail {
   item: Item
   note: string
   timeUsed: string
+  machineId: number | null
   machine: machine
-  machineId: number
 }
 
-// Order - đơn hàng chính
+// Order
 export interface Order {
   id: number
   accountId: number
@@ -28,6 +28,14 @@ export interface Order {
   orderDetails: OrderDetail[]
 }
 
+export interface OrderPendingRealtime {
+  accountId: number
+  orderDate: string
+  status: OrderStatus
+  nameWorker: string
+  image: string[]
+}
+
 export interface CreateOrderRequest {
   nameWorker: string
   itemIds: {
@@ -35,7 +43,7 @@ export interface CreateOrderRequest {
     orderQty: number
     note: string
     timeUsed: string
-    machineId?: number
+    machineId: number | null
   }[]
 }
 

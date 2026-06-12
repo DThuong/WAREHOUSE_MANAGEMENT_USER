@@ -1,3 +1,4 @@
+<!-- eslint-disable vue/no-v-text-v-html-on-component -->
 <!-- eslint-disable @typescript-eslint/no-explicit-any -->
 <template>
   <UserLayout>
@@ -20,6 +21,47 @@
         </div>
       </div>
 
+      <!-- Type Filter -->
+      <div class="type-filter bg-white rounded-2xl shadow-sm p-4 mb-8 flex flex-wrap items-center gap-3">
+        <Button
+          :variant="selectedType === 'ALL' ? 'default' : 'outline'"
+          :class="[
+            'filter-btn cursor-pointer',
+            selectedType === 'ALL'
+              ? 'bg-slate-900 text-white'
+              : 'border-slate-300 text-slate-700 hover:bg-slate-50'
+          ]"
+          @click="setTypeFilter('ALL')"
+        >
+          Tất cả
+        </Button>
+
+        <Button
+          :variant="selectedType === 'COM' ? 'default' : 'outline'"
+          :class="[
+            'filter-btn cursor-pointer',
+            selectedType === 'COM'
+              ? 'bg-green-600 text-white border-green-600'
+              : 'border-green-300 text-green-700 hover:bg-green-50'
+          ]"
+          @click="setTypeFilter('COM')"
+        >
+          Hàng Tiêu Dùng
+        </Button>
+        <Button
+          :variant="selectedType === 'ENG' ? 'default' : 'outline'"
+          :class="[
+            'filter-btn cursor-pointer',
+            selectedType === 'ENG'
+              ? 'bg-blue-600 text-white'
+              : 'border-blue-300 text-blue-700 hover:bg-blue-50'
+          ]"
+          @click="setTypeFilter('ENG')"
+        >
+          Hàng Kỹ Thuật
+        </Button>
+      </div>
+
       <!-- Loading State -->
       <div v-if="itemStore.loading" class="min-h-100 flex items-center justify-center">
         <AppLoading text="Đang tải danh sách vật tư..." size="lg" />
@@ -35,7 +77,7 @@
       <div v-else-if="filteredProducts.length === 0" class="bg-slate-50 border border-slate-200 rounded-xl p-12 text-center">
         <ShoppingCart class="h-16 w-16 text-slate-400 mx-auto mb-4" />
         <p class="text-slate-600 font-medium text-lg">
-          {{ searchQuery ? 'Không tìm thấy vật tư phù hợp' : 'Chưa có vật tư nào' }}
+          {{ searchQuery || selectedType !== 'ALL' ? 'Không tìm thấy vật tư phù hợp' : 'Chưa có vật tư nào' }}
         </p>
       </div>
 
@@ -47,7 +89,7 @@
           :key="product.id"
           :id="`product-${product.id}`"
           :class="[
-            'overflow-hidden pt-0 transition-all duration-300 hover:-translate-y-2 hover:scale-[1.02] hover:shadow-2xl cursor-pointer border',
+            'product-card overflow-hidden pt-0 transition-all duration-300 hover:-translate-y-2 hover:scale-[1.02] hover:shadow-2xl cursor-pointer border flex flex-col h-full',
             activeProductId === product.id ? 'ring-2 ring-blue-500 shadow-2xl scale-[1.02] border-blue-500' : 'border-slate-200'
           ]"
           @click="handleProductClick(product.id!)"
@@ -80,22 +122,24 @@
           </div>
 
           <!-- Product Info -->
-          <CardHeader class="space-y-2">
+          <CardHeader class="product-header space-y-2">
             <Badge
-              variant="outline"
               :class="product.type === 'ENG'
-                ? 'w-fit text-blue-600 border-blue-600'
-                : 'w-fit text-amber-600 border-amber-600'"
+                ? 'w-fit bg-blue-50 text-blue-700 border border-blue-600'
+                : 'w-fit bg-green-600 text-white border border-green-600'"
               class="uppercase text-xs font-semibold tracking-wider"
             >
               {{ product.type === 'ENG' ? 'Hàng Kỹ Thuật' : 'Hàng Tiêu Dùng' }}
             </Badge>
-            <CardTitle class="text-xl font-rubik" v-html="highlightKeyword(getProductName(product), searchQuery)"></CardTitle>
+            <CardTitle
+              class="product-title text-xl font-rubik"
+              v-html="highlightKeyword(getProductName(product), searchQuery)"
+            ></CardTitle>
             <CardDescription class="text-base leading-relaxed line-clamp-2" v-html="highlightKeyword(getProductDescription(product), searchQuery)">
             </CardDescription>
           </CardHeader>
 
-          <CardContent class="space-y-4">
+          <CardContent class="product-content space-y-4 mt-auto">
             <!-- Stock & Price Info -->
             <div class="flex justify-between items-center text-sm">
               <div class="flex items-center gap-2">
@@ -210,14 +254,13 @@ import { itemAPI } from '@/services/itemAPI'
 import { getItemImageUrl } from '@/utils/imageUtils'
 import type { Item } from '@/types/item.types'
 import UserLayout from '@/components/UserLayout.vue'
-import { Input } from '@/components/ui/input'
 import AdvancedSearch from '@/components/AdvancedSearch.vue'
 import AppLoading from '@/components/AppLoading.vue'
 import { fuzzyMatch, highlightKeyword } from '@/utils/searchUtils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Search, ShoppingCart, Check, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-vue-next'
+import { ShoppingCart, Check, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-vue-next'
 import { useCartStore } from '@/stores/cartStore'
 import { toast } from 'vue-sonner'
 
@@ -225,14 +268,24 @@ const itemStore = useItemStore()
 const cartStore = useCartStore()
 const searchQuery = ref(sessionStorage.getItem('user_products_search') || '')
 const currentPage = ref(parseInt(sessionStorage.getItem('user_products_page') || '1'))
+type ProductTypeFilter = 'ALL' | 'ENG' | 'COM'
+
+const selectedType = ref<ProductTypeFilter>(
+  (sessionStorage.getItem('user_products_type') as ProductTypeFilter) || 'ALL'
+)
 const itemsPerPage = ref(9)
 const activeProductId = ref<number | null>(parseInt(sessionStorage.getItem('user_products_active_id') || '0'))
-
-
 
 watch(currentPage, (newVal) => {
   sessionStorage.setItem('user_products_page', newVal.toString())
 })
+
+const setTypeFilter = (type: ProductTypeFilter) => {
+  selectedType.value = type
+  sessionStorage.setItem('user_products_type', type)
+  currentPage.value = 1
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
 
 const handleProductClick = (productId: number) => {
   sessionStorage.setItem('user_products_active_id', productId.toString())
@@ -252,17 +305,27 @@ const productSuggestNames = computed(() => {
 })
 
 const filteredProducts = computed(() => {
-  if (!searchQuery.value) return itemStore.items
+  let products = itemStore.items
+
+  // Lọc theo loại hàng: ALL / ENG / COM
+  if (selectedType.value !== 'ALL') {
+    products = products.filter(item => item.type === selectedType.value)
+  }
+
+  // Lọc theo tìm kiếm như logic cũ
+  if (!searchQuery.value) return products
 
   const query = searchQuery.value
-  return itemStore.items.filter(item => {
+
+  return products.filter(item => {
     const name = getProductName(item)
     const description = getProductDescription(item)
-    const type = item.type
+    const type = item.type === 'ENG' ? 'Hàng Kỹ Thuật' : 'Hàng Tiêu Dùng'
 
     return fuzzyMatch(query, name) ||
            fuzzyMatch(query, description) ||
-           fuzzyMatch(query, type)
+           fuzzyMatch(query, type) ||
+           fuzzyMatch(query, item.type)
   })
 })
 
@@ -485,5 +548,52 @@ onMounted(() => {
     width: 2rem;
     font-size: 0.875rem;
   }
+}
+.type-filter {
+  border: 1px solid #e5e7eb;
+}
+
+.filter-btn {
+  min-width: 130px;
+  height: 40px;
+  border-radius: 999px;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+.filter-btn:hover {
+  transform: translateY(-1px);
+}
+
+@media (max-width: 768px) {
+  .type-filter {
+    justify-content: center;
+  }
+
+  .filter-btn {
+    flex: 1;
+    min-width: 100%;
+  }
+}
+.product-card {
+  min-height: 100%;
+}
+
+.product-header {
+  flex: 0 0 auto;
+}
+
+.product-title {
+  min-height: 3.5rem;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.product-content {
+  flex: 0 0 auto;
+}
+
+.products-grid {
+  align-items: stretch;
 }
 </style>

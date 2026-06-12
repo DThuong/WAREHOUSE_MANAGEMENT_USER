@@ -1,3 +1,4 @@
+<!-- eslint-disable vue/no-v-text-v-html-on-component -->
 <template>
   <UserLayout>
     <div class="orders-page mt-6 animate-fade-in">
@@ -354,10 +355,8 @@ import {
   Calendar,
   Package,
   RotateCcw,
-  Loader2,
   XCircle,
   Trash2,
-  Search,
   RotateCw,
   ChevronLeft,
   ChevronRight,
@@ -469,11 +468,11 @@ const orderSuggestItems = computed(() => {
 
 const filteredOrders = computed(() => {
   let list = ordersStore.orders
-  
+
   // 1. Filter by Search ID (Fuzzy Match ID or Worker Name)
   if (searchId.value) {
-    list = list.filter(order => 
-      fuzzyMatch(searchId.value, order.id.toString()) || 
+    list = list.filter(order =>
+      fuzzyMatch(searchId.value, order.id.toString()) ||
       (order.nameWorker && fuzzyMatch(searchId.value, order.nameWorker)) ||
       fuzzyMatch(searchId.value, `Đơn hàng #${order.id}`)
     )
@@ -535,25 +534,25 @@ watch([selectedStatus, searchId, fromDate, toDate], ([, newId]) => {
 const displayedPages = computed(() => {
   const pages: number[] = []
   const maxDisplayed = 5
-  
+
   if (totalPages.value <= maxDisplayed) {
     for (let i = 1; i <= totalPages.value; i++) pages.push(i)
   } else {
     // Luôn có trang 1
     pages.push(1)
-    
+
     if (currentPage.value > 3) pages.push(-1) // Ellipsis
-    
+
     // Các trang xung quanh currentPage
     const start = Math.max(2, currentPage.value - 1)
     const end = Math.min(totalPages.value - 1, currentPage.value + 1)
-    
+
     for (let i = start; i <= end; i++) {
       if (!pages.includes(i)) pages.push(i)
     }
-    
+
     if (currentPage.value < totalPages.value - 2) pages.push(-1) // Ellipsis
-    
+
     // Luôn có trang cuối
     if (!pages.includes(totalPages.value)) pages.push(totalPages.value)
   }
@@ -596,7 +595,7 @@ const getStatusClass = (status: string): string => {
 const viewOrderDetail = (orderId: number): void => {
   sessionStorage.setItem('user_orders_active_id', orderId.toString())
   activeOrderId.value = orderId
-  
+
   // Tự động xóa highlight sau 3s
   setTimeout(() => {
     if (activeOrderId.value === orderId) {
