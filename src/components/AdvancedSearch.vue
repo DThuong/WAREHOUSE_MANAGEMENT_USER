@@ -97,7 +97,9 @@ onMounted(() => {
   if (stored) {
     try {
       recentSearches.value = JSON.parse(stored)
-    } catch (e) {}
+    } catch (e) {
+      console.error('Failed to parse recent searches', e)
+    }
   }
   document.addEventListener('click', handleClickOutside)
   window.addEventListener('scroll', handleScroll, { passive: true })
@@ -145,7 +147,7 @@ const saveToHistory = (query: string) => {
   history = history.filter(item => item.toLowerCase() !== q.toLowerCase())
   history.unshift(q)
   if (history.length > 5) history.pop() // Giữ 5 lịch sử gần nhất
-  
+
   recentSearches.value = history
   sessionStorage.setItem(`history_${props.storageKey}`, JSON.stringify(history))
 }

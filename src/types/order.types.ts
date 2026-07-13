@@ -43,6 +43,7 @@ export interface CreateOrderRequest {
     orderQty: number
     note: string
     timeUsed: string
+    lineId: number
     machineId: number | null
   }[]
 }

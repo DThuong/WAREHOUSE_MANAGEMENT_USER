@@ -11,7 +11,7 @@ export const getItemImageUrl = (imagePath: string | string[] | undefined): strin
   const path = Array.isArray(imagePath) ? imagePath[0] : imagePath
 
   if (!path) {
-    return 'https://images.unsplash.com/photo-1553062407-98eeb64c6;a62?w=400&h=300&fit=crop'
+    return 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=300&fit=crop'
   }
 
   // If already a full URL, return it

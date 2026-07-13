@@ -364,6 +364,7 @@ import AppLoading from '@/components/AppLoading.vue'
 
 import { useCartStore } from '@/stores/cartStore'
 import { useOrderStore } from '@/stores/orderStore'
+import { useUserStore } from '@/stores/userStore'
 
 import { getItemImageUrl } from '@/utils/imageUtils'
 import { orderAPI } from '@/services/orderAPI'
@@ -429,6 +430,19 @@ interface TimeLocal {
 const router = useRouter()
 const cartStore = useCartStore()
 const orderStore = useOrderStore()
+const userStore = useUserStore()
+
+// Khu vực (areaPart) của tài khoản đang đăng nhập: 'SMD' | 'MAINLINE' | ...
+// Chuẩn hoá về chữ HOA + trim để so sánh an toàn.
+const userAreaPart = computed(() => {
+  const user = userStore.currentUser as any
+  if (!user) return ''
+  const area = user.areaPart || user.AreaPart || user.department || user.Department || ''
+  const normalized = String(area).trim().toUpperCase()
+  if (normalized.includes('MAINLINE') || normalized.includes('MAIN LINE')) return 'MAINLINE'
+  if (normalized.includes('SMD')) return 'SMD'
+  return normalized
+})
 
 // ========================
 // Form State
@@ -441,6 +455,7 @@ const showUsageError = ref(false)
 // Machine State
 // ========================
 const machineOptions = ref<Machine[]>([])
+const allLines = ref<Line[]>([])
 const machineLoading = ref(false)
 const machineLoadError = ref(false)
 const selectedLineIds = ref<Record<number, number>>({})
@@ -450,21 +465,45 @@ const sortedMachineOptions = computed(() => {
 })
 
 const lineOptions = computed<Line[]>(() => {
-  const map = new Map<number, Line>()
+  const area = userAreaPart.value
 
-  for (const machine of sortedMachineOptions.value) {
-    if (!machine.lineId) continue
+  // Ưu tiên dùng dữ liệu từ /api/Lines (hiển thị được cả line chưa có máy nào).
+  let lines: Line[] = allLines.value
+    .filter((line) => line?.id)
+    .map(
+      (line: any) =>
+        ({
+          id: Number(line.id),
+          lineName: line.lineName || line.LineName || `Vị trí ${line.id}`,
+          areaPart: line.areaPart || line.AreaPart || '',
+        }) as Line,
+    )
 
-    const line = machine.line
+  // Fallback: nếu /api/Lines không trả gì, suy ra line từ danh sách máy.
+  if (lines.length === 0) {
+    const map = new Map<number, Line>()
 
-    map.set(Number(machine.lineId), {
-      id: Number(machine.lineId),
-      lineName: line?.lineName || machine.lineName || `Vị trí ${machine.lineId}`,
-      areaPart: line?.areaPart || '',
-    } as Line)
+    for (const machine of sortedMachineOptions.value) {
+      if (!machine.lineId) continue
+
+      const line = machine.line
+
+      map.set(Number(machine.lineId), {
+        id: Number(machine.lineId),
+        lineName: line?.lineName || machine.lineName || `Vị trí ${machine.lineId}`,
+        areaPart: line?.areaPart || '',
+      } as Line)
+    }
+
+    lines = [...map.values()]
   }
 
-  return [...map.values()].sort((a, b) => {
+  // Lọc theo areaPart của user: SMD chỉ thấy line SMD, MAINLINE chỉ thấy line MAINLINE.
+  if (area) {
+    lines = lines.filter((line) => (line.areaPart || '').trim().toUpperCase() === area)
+  }
+
+  return lines.sort((a, b) => {
     const areaA = a.areaPart || ''
     const areaB = b.areaPart || ''
     const lineA = a.lineName || ''
@@ -510,16 +549,45 @@ const fetchMachines = async () => {
   machineLoadError.value = false
 
   try {
-    const response = await lineMachineAPI.getAllMachines()
+    // Lấy song song danh sách Line (có areaPart đáng tin cậy) và Machine.
+    const [linesResponse, machinesResponse] = await Promise.all([
+      lineMachineAPI.getAllLines().catch(() => [] as Line[]),
+      lineMachineAPI.getAllMachines(),
+    ])
 
-    machineOptions.value = Array.isArray(response)
-      ? response
+    allLines.value = Array.isArray(linesResponse) ? linesResponse : []
+
+    // Map lineId -> areaPart để lọc máy ngay cả khi machine.line bị null.
+    const areaByLineId = new Map<number, string>()
+    for (const line of allLines.value as any[]) {
+      if (line?.id) {
+        areaByLineId.set(Number(line.id), (line.areaPart || line.AreaPart || '').trim().toUpperCase())
+      }
+    }
+
+    const area = userAreaPart.value
+
+    machineOptions.value = Array.isArray(machinesResponse)
+      ? machinesResponse
           .filter((machine) => machine?.id)
           .map((machine) => ({
             ...machine,
             id: Number(machine.id),
             lineId: Number(machine.lineId),
           }))
+          // Chỉ giữ máy thuộc đúng khu vực (areaPart) của user.
+          .filter((machine: any) => {
+            if (!area) return true
+            const machineArea = (
+              machine.line?.areaPart ||
+              machine.line?.AreaPart ||
+              areaByLineId.get(Number(machine.lineId)) ||
+              ''
+            )
+              .trim()
+              .toUpperCase()
+            return machineArea === area
+          })
       : []
 
     syncSelectedLinesFromMachines()
