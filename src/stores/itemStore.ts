@@ -25,7 +25,7 @@ export const useItemStore = defineStore('item', () => {
   )
 
   const lowStockItems = computed(() => 
-    items.value.filter(item => item.stockQty < 10)
+    items.value.filter(item => Number(item.stockQty ?? 0) < 10)
   )
 
   // Actions

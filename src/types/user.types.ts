@@ -1,15 +1,37 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+/**
+ * Tài khoản theo cấu trúc tổ chức MỚI (Plant > FactoryPart > Department > AreaPart).
+ *
+ * Bỏ hai field cũ `areaPart: string` và `department: string`: chúng chỉ chứa
+ * chuỗi "SMD" / "MAINLINE" và không nối được với AreaPart/Department thật.
+ * Nguồn sự thật để lọc dữ liệu theo bộ phận là `departmentId`.
+ */
 export interface User {
   id: number
   username: string
-  role: string
-  token: string
-  areaPart: string
-  department: string
+  fullName?: string | null
   phoneNumber: string
-  expiresAt?: string
-  createdAt: string
+  role: string
+
+  // Vị trí trong cây tổ chức
+  departmentId?: number | null
+  departmentName?: string | null
+  factoryPartId?: number | null
+  factoryPartName?: string | null
+  plantId?: number | null
+  plantName?: string | null
+
+  // Chức vụ
+  positionId?: number | null
+  positionName?: string | null
+
   isActive: boolean
+  createdAt: string
+  lastLoginAt?: string | null
+
+  // Chỉ có trong response đăng nhập
+  token: string
+  expiresAt?: string
 }
 
 export interface LoginCredentials {

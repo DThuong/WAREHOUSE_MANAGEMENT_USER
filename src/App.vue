@@ -197,12 +197,15 @@ const handleLogout = async (reason?: string) => {
     blocked_admin: 'Tài khoản Admin không được phép truy cập hệ thống này',
   }
   
-  router.push({ 
-    path: '/signin', 
-    query: { 
+  // Route '/signin' KHÔNG tồn tại trong router (chỉ có '/user/login').
+  // Trước đây bị catch-all '/:pathMatch(.*)*' cứu về login nhưng MẤT sạch
+  // query reason/message nên người dùng không biết vì sao bị đăng xuất.
+  router.push({
+    path: '/user/login',
+    query: {
       reason,
-      message: messages[reason || ''] 
-    } 
+      message: messages[reason || '']
+    }
   })
 }
 

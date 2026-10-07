@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { useUserStore } from '@/stores/userStore'
+import { authGuard } from './guards'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -51,37 +51,7 @@ const router = createRouter({
   ]
 })
 
-router.beforeEach((to, from, next) => {
-  const userStore = useUserStore()
-  const requiresAuth = to.meta.requiresAuth
-  const isAuthenticated = userStore.isAuthenticated
-
-  console.log('🧭 Navigation:', {
-    from: from.path,
-    to: to.path,
-    requiresAuth,
-    isAuthenticated
-  })
-
-  // Route yêu cầu auth nhưng user chưa login
-  if (requiresAuth && !isAuthenticated) {
-    console.warn('⚠️ Access denied, redirecting to login')
-    next({
-      path: '/user/login',
-      query: { redirect: to.fullPath } // Lưu redirect path
-    })
-    return
-  }
-
-  // User đã login nhưng đang cố truy cập login page
-  if (to.path === '/user/login' && isAuthenticated) {
-    next('/user/dashboard')
-    return
-  }
-
-  // Allow navigation
-  next()
-})
+router.beforeEach(authGuard)
 
 // ✨ AFTER NAVIGATION - Log successful navigation
 router.afterEach((to, from) => {

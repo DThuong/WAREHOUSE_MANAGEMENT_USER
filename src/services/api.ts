@@ -41,7 +41,7 @@ axiosInstance.interceptors.request.use(
         
         // Redirect to login
         router.push({ 
-          path: '/login', 
+          path: '/user/login',
           query: { reason: 'expired' } 
         })
         

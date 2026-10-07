@@ -66,8 +66,11 @@
           @mouseleave="endDrag"
         >
           <img 
+            :key="images[currentIndex]"
             :src="images[currentIndex]" 
             alt="Preview" 
+            decoding="async"
+            @error="handleImageError"
             class="max-w-[90vw] max-h-[90vh] object-contain transition-transform"
             :class="{ 'duration-200': !isDragging, 'duration-0': isDragging }"
             :style="{ 
@@ -82,7 +85,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, onUnmounted } from 'vue'
+import { ref, watch, onUnmounted } from 'vue'
+import { handleImageError, preloadImage } from '@/utils/imageUtils'
 import { 
   X, 
   ZoomIn, 
@@ -127,8 +131,19 @@ watch(() => props.open, (newVal) => {
   }
 })
 
+// Tải trước ảnh liền kề để bấm Next/Prev hiện ngay (backend có ETag/Cache-Control nên dùng lại cache)
+const preloadNeighbors = () => {
+  preloadImage(props.images[currentIndex.value + 1])
+  preloadImage(props.images[currentIndex.value - 1])
+}
+
 watch(currentIndex, () => {
   reset()
+  if (props.open) preloadNeighbors()
+})
+
+watch(() => props.open, (isOpen) => {
+  if (isOpen) preloadNeighbors()
 })
 
 // Actions

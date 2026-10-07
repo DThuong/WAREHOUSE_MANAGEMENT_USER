@@ -2,6 +2,24 @@ import { useUserStore } from "@/stores/userStore"
 import { isTokenExpired } from "@/utils/checkToken"
 import type { NavigationGuardNext, RouteLocationNormalized } from "vue-router"
 
+const LOGIN_PATH = '/user/login'
+const HOME_PATH = '/user/dashboard'
+
+const redirectIfNeeded = (
+  to: RouteLocationNormalized,
+  next: NavigationGuardNext,
+  target: string | { path: string; query?: Record<string, string | undefined> }
+) => {
+  const targetPath = typeof target === 'string' ? target : target.path
+
+  if (to.path === targetPath) {
+    next()
+    return
+  }
+
+  next(target)
+}
+
 export const authGuard = (
   to: RouteLocationNormalized,
   _from: RouteLocationNormalized,
@@ -19,8 +37,9 @@ export const authGuard = (
       // Block Admin role
       if (user.role === 'Admin') {
         localStorage.clear()
-        next({ 
-          path: '/signin', 
+        userStore.resetStore()
+        redirectIfNeeded(to, next, {
+          path: LOGIN_PATH,
           query: { 
             reason: 'blocked_admin',
             message: 'Tài khoản Admin không được phép truy cập hệ thống này'
@@ -32,8 +51,9 @@ export const authGuard = (
       // Check token hết hạn
       if (isTokenExpired(user.expiresAt)) {
         localStorage.clear()
-        next({ 
-          path: '/signin', 
+        userStore.resetStore()
+        redirectIfNeeded(to, next, {
+          path: LOGIN_PATH,
           query: { 
             redirect: to.fullPath, 
             reason: 'expired' 
@@ -50,20 +70,23 @@ export const authGuard = (
       console.error('Lỗi parse user_info:', error)
       localStorage.clear()
       userStore.resetStore()
-      next('/signin')
+      redirectIfNeeded(to, next, LOGIN_PATH)
       return
     }
   }
 
-  // 2. Đã login mà vào signin → redirect home
-  if (userStore.isAuthenticated && to.path === '/signin') {
-    next('/')
+  // 2. Đã login mà vào login page -> redirect home
+  if (userStore.isAuthenticated && to.path === LOGIN_PATH) {
+    redirectIfNeeded(to, next, HOME_PATH)
     return
   }
 
   // 3. Chưa login nhưng route cần auth
   if (to.meta.requiresAuth && !userStore.isAuthenticated) {
-    next({ path: '/signin', query: { redirect: to.fullPath } })
+    redirectIfNeeded(to, next, {
+      path: LOGIN_PATH,
+      query: { redirect: to.fullPath }
+    })
     return
   }
 
@@ -73,12 +96,19 @@ export const authGuard = (
     
     // Block Admin từ mọi route có roles
     if (userStore.currentUser.role === 'Admin') {
-      next('/')
+      userStore.resetStore()
+      redirectIfNeeded(to, next, {
+        path: LOGIN_PATH,
+        query: {
+          reason: 'blocked_admin',
+          message: 'Tài khoản Admin không được phép truy cập hệ thống này'
+        }
+      })
       return
     }
     
     if (!allowedRoles.includes(userStore.currentUser.role)) {
-      next('/')
+      redirectIfNeeded(to, next, HOME_PATH)
       return
     }
   }

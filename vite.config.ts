@@ -26,12 +26,44 @@ export default defineConfig({
       overlay: true
     },
     proxy: {
+      '/api/Account': {
+        target: 'http://172.16.162.123:9000',
+        changeOrigin: true
+      },
+      '/api/Plant': {
+        target: 'http://172.16.162.123:9000',
+        changeOrigin: true
+      },
+      '/api/FactoryPart': {
+        target: 'http://172.16.162.123:9000',
+        changeOrigin: true
+      },
+      '/api/Department': {
+        target: 'http://172.16.162.123:9000',
+        changeOrigin: true
+      },
+      '/api/AreaPart': {
+        target: 'http://172.16.162.123:9000',
+        changeOrigin: true
+      },
+      '/api/Machine': {
+        target: 'http://172.16.162.123:9000',
+        changeOrigin: true
+      },
+      '/api/Position': {
+        target: 'http://172.16.162.123:9000',
+        changeOrigin: true
+      },
+      '/api/Image': {
+        target: 'http://172.16.162.123:9000',
+        changeOrigin: true
+      },
       '/api': {
-        target: 'http://172.16.162.123:7000',
+        target: 'http://172.16.162.123:7001',
         changeOrigin: true
       },
       '/orderHub': {
-        target: 'http://172.16.162.123:7000',
+        target: 'http://172.16.162.123:7001',
         ws: true,
         changeOrigin: true
       }

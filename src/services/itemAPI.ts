@@ -4,7 +4,65 @@ import type {
   Item,
   CreateItemRequest, 
   UpdateItemRequest,
+  PagedResult,
 } from '@/types/item.types'
+
+/** Query params của GET /api/Item/filter. departmentId là nguồn lọc bộ phận. */
+export interface FilterItemParams {
+  type?: string;
+  unit?: string;
+  keyword?: string;
+  factoryName?: string;
+  departmentId?: number;
+  /** Trang hiện tại, bắt đầu từ 1 */
+  pageNumber?: number;
+  /** Số bản ghi mỗi trang */
+  pageSize?: number;
+}
+
+/** Bỏ các param rỗng để query string gọn & không làm backend lọc sai ("" / null). */
+const cleanParams = <T extends object>(params: T): Partial<T> =>
+  Object.fromEntries(
+    Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '')
+  ) as Partial<T>
+
+/**
+ * Chuẩn hoá response phân trang. Chấp nhận các dạng .NET hay gặp:
+ *  - { items|data|records|results, totalCount|totalRecords|totalItems|total, totalPages, pageNumber, pageSize }
+ *  - Bọc thêm 1 lớp { data: {...} }
+ *  - Mảng thuần (backend chưa phân trang) → serverPaged = false
+ */
+const toPagedResult = <T>(res: any, pageNumber: number, pageSize: number): PagedResult<T> => {
+  if (Array.isArray(res)) {
+    return {
+      items: res,
+      totalCount: res.length,
+      totalPages: Math.max(1, Math.ceil(res.length / pageSize)),
+      pageNumber,
+      pageSize,
+      serverPaged: false,
+    }
+  }
+
+  const body = res && !Array.isArray(res.data) && typeof res.data === 'object' && res.data !== null
+    ? res.data
+    : res
+  const items: T[] =
+    body?.items ?? body?.Items ?? body?.data ?? body?.records ?? body?.results ?? []
+  const totalCount = Number(
+    body?.totalCount ?? body?.TotalCount ?? body?.totalRecords ?? body?.totalItems ?? body?.total ?? items.length
+  )
+  const size = Number(body?.pageSize ?? body?.PageSize ?? pageSize) || pageSize
+
+  return {
+    items: Array.isArray(items) ? items : [],
+    totalCount,
+    totalPages: Number(body?.totalPages ?? body?.TotalPages) || Math.max(1, Math.ceil(totalCount / size)),
+    pageNumber: Number(body?.pageNumber ?? body?.PageNumber ?? pageNumber) || pageNumber,
+    pageSize: size,
+    serverPaged: true,
+  }
+}
 
 export const itemAPI = {
   // Get all items
@@ -15,6 +73,21 @@ export const itemAPI = {
       console.error('Error fetching items:', error)
       return []
     }
+  },
+
+  // Filter items (server-side pagination) - GET /api/Item/filter
+  // Ném lỗi ra ngoài để view hiển thị thông báo; hỗ trợ AbortSignal để huỷ request cũ.
+  filter: async (
+    params: FilterItemParams,
+    options: { signal?: AbortSignal } = {}
+  ): Promise<PagedResult<Item>> => {
+    const pageNumber = params.pageNumber ?? 1
+    const pageSize = params.pageSize ?? 9
+    const res = await api.get(`/api/Item/filter`, {
+      params: cleanParams({ ...params, pageNumber, pageSize }),
+      signal: options.signal,
+    })
+    return toPagedResult<Item>(res, pageNumber, pageSize)
   },
 
   // Get item by ID

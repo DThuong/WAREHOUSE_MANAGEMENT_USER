@@ -43,9 +43,16 @@
               <!-- Image -->
               <div class="item-image-wrap">
                 <img
-                  :src="getItemImageUrl(item.picture?.[0])"
+                  :src="getItemImageUrl(item.picture?.[0], 256)"
+                  :srcset="getImageSrcSet('Item', item.picture?.[0], [128, 256, 512, 768])"
+                  sizes="(max-width: 640px) 100vw, 132px"
                   :alt="getItemName(item)"
+                  width="132"
+                  height="132"
+                  loading="lazy"
+                  decoding="async"
                   class="item-image"
+                  @error="handleImageError"
                 />
               </div>
 
@@ -96,110 +103,74 @@
                     />
                   </div>
 
-                  <!-- Location / Line -->
-                  <div class="usage-field usage-field-location">
+                  <!-- AreaPart -->
+                  <div class="usage-field usage-field-full">
                     <label class="usage-field-label">
                       <MapPin class="h-3.5 w-3.5 text-blue-500" />
-                      Vị trí <span class="text-red-500">*</span>
+                      Khu vực <span class="text-red-500">*</span>
                     </label>
 
-                    <select
-                      class="machine-select"
+                    <Multiselect
+                      v-model="selectedAreaPartIds[item.id!]"
+                      :options="formattedAreaPartOptions"
+                      mode="tags"
+                      :close-on-select="false"
+                      :searchable="true"
+                      placeholder="Chọn một hoặc nhiều khu vực..."
+                      class="min-h-[2.65rem]"
                       :class="{
-                        'field-error': showUsageError && !getSelectedLineId(item),
+                        'border-red-500': showUsageError && getSelectedAreaPartIds(item).length === 0
                       }"
-                      :value="getSelectedLineId(item) || ''"
-                      :disabled="machineLoading || lineOptions.length === 0"
-                      @change="
-                        onLineChange(item, Number(($event.target as HTMLSelectElement).value))
-                      "
+                      :disabled="machineLoading"
                     >
-                      <option value="" disabled>
-                        {{
-                          machineLoading ? 'Đang tải vị trí...' : 'Chọn vị trí sử dụng'
-                        }}
-                      </option>
+                      <template #option="{ option }">
+                        <div class="flex items-center gap-2 cursor-pointer w-full">
+                          <input 
+                            type="checkbox" 
+                            :checked="selectedAreaPartIds[item.id!]?.includes(option.value)"
+                            class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer pointer-events-none"
+                          />
+                          <span>{{ option.label }}</span>
+                        </div>
+                      </template>
+                    </Multiselect>
 
-                      <option
-                        v-for="line in lineOptions"
-                        :key="line.id"
-                        :value="line.id"
-                      >
-                        {{ getLineLabel(line) }}
-                      </option>
-                    </select>
-
-                    <p class="field-hint">
-                      Chọn vị trí trước, hệ thống sẽ lọc máy phù hợp bên dưới.
+                    <p v-if="machineLoadError" class="field-hint text-red-500">
+                      Không tải được danh sách khu vực. Vui lòng thử lại.
                     </p>
                   </div>
 
                   <!-- Machine -->
-                  <div class="usage-field usage-field-machine">
+                  <div class="usage-field usage-field-full">
                     <label class="usage-field-label">
                       <Cpu class="h-3.5 w-3.5 text-blue-500" />
-                      Máy tương thích
-                      <span v-if="shouldRequireMachine(item)" class="text-red-500">*</span>
-                      <span v-else class="optional-badge">Không bắt buộc</span>
+                      Máy tương thích <span class="text-gray-400 font-normal ml-1">(Tùy chọn)</span>
                     </label>
 
-                    <select
-                      class="machine-select"
-                      :class="{
-                        'field-error': showUsageError && shouldRequireMachine(item) && !getSelectedMachineId(item),
-                        'machine-select-optional': !shouldRequireMachine(item),
-                      }"
-                      :value="getSelectedMachineId(item) || ''"
-                      :disabled="
-                        machineLoading ||
-                        !getSelectedLineId(item) ||
-                        !shouldRequireMachine(item) ||
-                        getMachinesByLineId(getSelectedLineId(item)).length === 0
-                      "
-                      @change="
-                        onMachineChange(item, Number(($event.target as HTMLSelectElement).value))
-                      "
+                    <Multiselect
+                      v-model="selectedMachineIds[item.id!]"
+                      :options="getFormattedMachineOptions(item.id!)"
+                      mode="tags"
+                      :close-on-select="false"
+                      :searchable="true"
+                      placeholder="Chọn một hoặc nhiều máy..."
+                      class="min-h-[2.65rem]"
+                      :disabled="machineLoading || getSelectedAreaPartIds(item).length === 0"
                     >
-                      <option value="" disabled>
-                        {{ getMachinePlaceholder(item) }}
-                      </option>
+                      <template #option="{ option }">
+                        <div class="flex items-center gap-2 cursor-pointer w-full">
+                          <input 
+                            type="checkbox" 
+                            :checked="selectedMachineIds[item.id!]?.includes(option.value)"
+                            class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer pointer-events-none"
+                          />
+                          <span>{{ option.label }}</span>
+                        </div>
+                      </template>
+                    </Multiselect>
 
-                      <option
-                        v-for="machine in getMachinesByLineId(getSelectedLineId(item))"
-                        :key="machine.id"
-                        :value="machine.id"
-                      >
-                        {{ getMachineOnlyLabel(machine) }}
-                      </option>
-                    </select>
-
-                    <p v-if="machineLoadError" class="field-hint text-red-500">
-                      Không tải được danh sách vị trí / máy. Vui lòng thử lại.
-                    </p>
-
-                    <p
-                      v-else-if="
-                        getSelectedLineId(item) &&
-                        getMachinesByLineId(getSelectedLineId(item)).length === 0
-                      "
-                      class="field-hint field-hint-info"
-                    >
-                      Vị trí này không có máy tương thích nên không cần chọn máy.
-                    </p>
-
-                    <p
-                      v-else-if="
-                        getSelectedLineId(item) &&
-                        getMachinesByLineId(getSelectedLineId(item)).length === 1 &&
-                        getSelectedMachineId(item)
-                      "
-                      class="field-hint field-hint-success"
-                    >
-                      Đã tự chọn máy duy nhất của vị trí này.
-                    </p>
-
-                    <p v-else class="field-hint">
-                      Chỉ hiển thị máy thuộc vị trí đã chọn.
+                    <p class="field-hint">
+                      Bạn có thể tìm kiếm theo tên máy.
                     </p>
                   </div>
 
@@ -333,10 +304,10 @@
 
             <Button
               class="btn-checkout w-full cursor-pointer"
-              :disabled="orderStore.loading || machineLoading"
+              :disabled="isSubmitting || orderStore.loading || machineLoading"
               @click="placeOrder"
             >
-              <Check v-if="!orderStore.loading" class="mr-2 h-4 w-4" />
+              <Check v-if="!isSubmitting && !orderStore.loading" class="mr-2 h-4 w-4" />
               <AppLoading v-else type="inline" size="sm" class="mr-2 text-white" />
               Tạo Đơn Hàng
             </Button>
@@ -366,11 +337,12 @@ import { useCartStore } from '@/stores/cartStore'
 import { useOrderStore } from '@/stores/orderStore'
 import { useUserStore } from '@/stores/userStore'
 
-import { getItemImageUrl } from '@/utils/imageUtils'
+import { getItemImageUrl, getImageSrcSet, handleImageError } from '@/utils/imageUtils'
 import { orderAPI } from '@/services/orderAPI'
-import { lineMachineAPI } from '@/services/lineMachineAPI'
+import { areaPartAPI } from '@/services/areaPartAPI'
+import { machineAPI } from '@/services/machineAPI'
 
-import type { Line, Machine } from '@/types/line_machine.types'
+import type { AreaPart, Machine } from '@/types/organization.types'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -379,6 +351,8 @@ import { Separator } from '@/components/ui/separator'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import Multiselect from '@vueform/multiselect'
+import '@vueform/multiselect/themes/default.css'
 
 import {
   ArrowLeft,
@@ -404,19 +378,21 @@ interface CartItemLocal {
   quantity: number
   note?: string
   timeUsed?: string
-  machineId?: number | null
-  picture?: string[]
+  areaPartIds?: number[]
+  machineId?: number[]
+  // Theo ReadItemDto trong swagger, các field này đều nullable
+  picture?: string[] | null
   type: string
-  unit: string
-  stockQty?: number
+  unit: string | null
+  stockQty?: number | null
   eng?: {
     partname?: string
     description?: string
-  }
+  } | null
   com?: {
     name?: string
     specifications?: string
-  }
+  } | null
 }
 
 interface TimeLocal {
@@ -432,16 +408,18 @@ const cartStore = useCartStore()
 const orderStore = useOrderStore()
 const userStore = useUserStore()
 
-// Khu vực (areaPart) của tài khoản đang đăng nhập: 'SMD' | 'MAINLINE' | ...
-// Chuẩn hoá về chữ HOA + trim để so sánh an toàn.
-const userAreaPart = computed(() => {
-  const user = userStore.currentUser as any
-  if (!user) return ''
-  const area = user.areaPart || user.AreaPart || user.department || user.Department || ''
-  const normalized = String(area).trim().toUpperCase()
-  if (normalized.includes('MAINLINE') || normalized.includes('MAIN LINE')) return 'MAINLINE'
-  if (normalized.includes('SMD')) return 'SMD'
-  return normalized
+/**
+ * Bộ phận của tài khoản đang đăng nhập, theo cấu trúc tổ chức MỚI.
+ *
+ * Trước đây chỗ này so khớp chuỗi "SMD"/"MAINLINE" lấy từ `user.areaPart` —
+ * một field không còn tồn tại — và kết quả computed KHÔNG được dùng ở đâu cả,
+ * nên danh sách khu vực/máy hiển thị TOÀN BỘ nhà máy cho mọi tài khoản.
+ * Giờ dùng departmentId, cùng khoá mà AreaPart và Machine đều mang theo.
+ */
+const userDepartmentId = computed<number | null>(() => {
+  const raw = userStore.currentUser?.departmentId
+  const id = Number(raw)
+  return Number.isFinite(id) && id > 0 ? id : null
 })
 
 // ========================
@@ -450,81 +428,53 @@ const userAreaPart = computed(() => {
 const nameWorker = ref('')
 const showNameError = ref(false)
 const showUsageError = ref(false)
+const isSubmitting = ref(false)
 
 // ========================
-// Machine State
+// Machine & AreaPart State
 // ========================
+const areaPartOptions = ref<AreaPart[]>([])
 const machineOptions = ref<Machine[]>([])
-const allLines = ref<Line[]>([])
 const machineLoading = ref(false)
 const machineLoadError = ref(false)
-const selectedLineIds = ref<Record<number, number>>({})
+const selectedAreaPartIds = ref<Record<number, number[]>>({})
+const selectedMachineIds = ref<Record<number, number[]>>({})
 
-const sortedMachineOptions = computed(() => {
-  return [...machineOptions.value].sort(compareMachines)
+/** Chỉ những khu vực thuộc bộ phận của tài khoản. */
+const visibleAreaParts = computed<AreaPart[]>(() => {
+  const deptId = userDepartmentId.value
+  if (deptId === null) return areaPartOptions.value
+  return areaPartOptions.value.filter(a => Number(a.departmentId) === deptId)
 })
 
-const lineOptions = computed<Line[]>(() => {
-  const area = userAreaPart.value
-
-  // Ưu tiên dùng dữ liệu từ /api/Lines (hiển thị được cả line chưa có máy nào).
-  let lines: Line[] = allLines.value
-    .filter((line) => line?.id)
-    .map(
-      (line: any) =>
-        ({
-          id: Number(line.id),
-          lineName: line.lineName || line.LineName || `Vị trí ${line.id}`,
-          areaPart: line.areaPart || line.AreaPart || '',
-        }) as Line,
-    )
-
-  // Fallback: nếu /api/Lines không trả gì, suy ra line từ danh sách máy.
-  if (lines.length === 0) {
-    const map = new Map<number, Line>()
-
-    for (const machine of sortedMachineOptions.value) {
-      if (!machine.lineId) continue
-
-      const line = machine.line
-
-      map.set(Number(machine.lineId), {
-        id: Number(machine.lineId),
-        lineName: line?.lineName || machine.lineName || `Vị trí ${machine.lineId}`,
-        areaPart: line?.areaPart || '',
-      } as Line)
-    }
-
-    lines = [...map.values()]
-  }
-
-  // Lọc theo areaPart của user: SMD chỉ thấy line SMD, MAINLINE chỉ thấy line MAINLINE.
-  if (area) {
-    lines = lines.filter((line) => (line.areaPart || '').trim().toUpperCase() === area)
-  }
-
-  return lines.sort((a, b) => {
-    const areaA = a.areaPart || ''
-    const areaB = b.areaPart || ''
-    const lineA = a.lineName || ''
-    const lineB = b.lineName || ''
-
-    return `${areaA}-${lineA}`.localeCompare(`${areaB}-${lineB}`)
-  })
+const formattedAreaPartOptions = computed(() => {
+  return visibleAreaParts.value.map(area => ({
+    value: area.id,
+    label: area.areaPartName || `Khu vực ID ${area.id}`
+  }))
 })
 
-const machinesByLineId = computed(() => {
-  const map = new Map<number, Machine[]>()
-
-  for (const machine of sortedMachineOptions.value) {
-    const lineId = Number(machine.lineId)
-    const current = map.get(lineId) ?? []
-    current.push(machine)
-    map.set(lineId, current)
-  }
-
-  return map
+/** Máy thuộc bộ phận của tài khoản (chặn cả trường hợp BE trả dư). */
+const visibleMachines = computed<Machine[]>(() => {
+  const deptId = userDepartmentId.value
+  if (deptId === null) return machineOptions.value
+  const allowedAreaIds = new Set(visibleAreaParts.value.map(a => a.id))
+  return machineOptions.value.filter(
+    m => Number(m.departmentId) === deptId || allowedAreaIds.has(m.areaPartId),
+  )
 })
+
+const getFormattedMachineOptions = (itemId: number) => {
+  const selectedAreas = selectedAreaPartIds.value[itemId] || []
+  if (selectedAreas.length === 0) return []
+
+  return visibleMachines.value
+    .filter(m => selectedAreas.includes(m.areaPartId))
+    .map(m => ({
+      value: m.id,
+      label: m.machineName || `Máy ID ${m.id}`
+    }))
+}
 
 // ========================
 // Time Options
@@ -549,53 +499,20 @@ const fetchMachines = async () => {
   machineLoadError.value = false
 
   try {
-    // Lấy song song danh sách Line (có areaPart đáng tin cậy) và Machine.
-    const [linesResponse, machinesResponse] = await Promise.all([
-      lineMachineAPI.getAllLines().catch(() => [] as Line[]),
-      lineMachineAPI.getAllMachines(),
+    const [areasResponse, machinesResponse] = await Promise.all([
+      areaPartAPI.getAll().catch(() => [] as AreaPart[]),
+      machineAPI.getAll().catch(() => [] as Machine[]),
     ])
 
-    allLines.value = Array.isArray(linesResponse) ? linesResponse : []
+    areaPartOptions.value = Array.isArray(areasResponse) ? areasResponse : []
+    machineOptions.value = Array.isArray(machinesResponse) ? machinesResponse : []
 
-    // Map lineId -> areaPart để lọc máy ngay cả khi machine.line bị null.
-    const areaByLineId = new Map<number, string>()
-    for (const line of allLines.value as any[]) {
-      if (line?.id) {
-        areaByLineId.set(Number(line.id), (line.areaPart || line.AreaPart || '').trim().toUpperCase())
-      }
-    }
-
-    const area = userAreaPart.value
-
-    machineOptions.value = Array.isArray(machinesResponse)
-      ? machinesResponse
-          .filter((machine) => machine?.id)
-          .map((machine) => ({
-            ...machine,
-            id: Number(machine.id),
-            lineId: Number(machine.lineId),
-          }))
-          // Chỉ giữ máy thuộc đúng khu vực (areaPart) của user.
-          .filter((machine: any) => {
-            if (!area) return true
-            const machineArea = (
-              machine.line?.areaPart ||
-              machine.line?.AreaPart ||
-              areaByLineId.get(Number(machine.lineId)) ||
-              ''
-            )
-              .trim()
-              .toUpperCase()
-            return machineArea === area
-          })
-      : []
-
-    syncSelectedLinesFromMachines()
   } catch (error) {
     machineLoadError.value = true
+    areaPartOptions.value = []
     machineOptions.value = []
 
-    toast.error('Không tải được danh sách máy', {
+    toast.error('Không tải được danh sách khu vực và máy', {
       description: error instanceof Error ? error.message : 'Vui lòng thử lại sau',
     })
   } finally {
@@ -603,129 +520,14 @@ const fetchMachines = async () => {
   }
 }
 
-const compareMachines = (a: Machine, b: Machine) => {
-  const areaA = a.line?.areaPart || ''
-  const areaB = b.line?.areaPart || ''
-
-  const lineA = a.line?.lineName || a.lineName || ''
-  const lineB = b.line?.lineName || b.lineName || ''
-
-  const machineA = a.machineName || ''
-  const machineB = b.machineName || ''
-
-  return `${areaA}-${lineA}-${machineA}`.localeCompare(`${areaB}-${lineB}-${machineB}`)
+const getSelectedAreaPartIds = (item: CartItemLocal): number[] => {
+  if (!item.id) return []
+  return selectedAreaPartIds.value[item.id] || []
 }
 
-const getLineLabel = (line: Line): string => {
-  const areaPart = line.areaPart?.trim()
-  const lineName = line.lineName?.trim() || `Vị trí ${line.id}`
-
-  return areaPart ? `${areaPart} - ${lineName}` : lineName
-}
-
-const getMachineOnlyLabel = (machine: Machine): string => {
-  return machine.machineName?.trim() || `Máy ID ${machine.id}`
-}
-
-const getMachinesByLineId = (lineId?: number | null): Machine[] => {
-  if (!lineId) return []
-  return machinesByLineId.value.get(Number(lineId)) ?? []
-}
-
-const getSelectedMachineId = (item: CartItemLocal): number | null => {
-  return item.machineId ? Number(item.machineId) : null
-}
-
-const getSelectedLineId = (item: CartItemLocal): number | null => {
-  if (!item.id) return null
-
-  const localLineId = selectedLineIds.value[item.id]
-  if (localLineId) return Number(localLineId)
-
-  const machineId = getSelectedMachineId(item)
-  if (!machineId) return null
-
-  const machine = machineOptions.value.find((machine) => Number(machine.id) === machineId)
-  return machine?.lineId ? Number(machine.lineId) : null
-}
-
-const shouldRequireMachine = (item: CartItemLocal): boolean => {
-  const lineId = getSelectedLineId(item)
-  if (!lineId) return true
-
-  return getMachinesByLineId(lineId).length > 0
-}
-
-const getMachinePlaceholder = (item: CartItemLocal): string => {
-  if (machineLoading.value) return 'Đang tải danh sách máy...'
-
-  const lineId = getSelectedLineId(item)
-  if (!lineId) return 'Chọn vị trí trước'
-
-  const machines = getMachinesByLineId(lineId)
-
-  if (machines.length === 0) return 'Không cần chọn máy cho vị trí này'
-
-  if (machines.length === 1) {
-    const onlyMachine = machines[0]
-    return onlyMachine ? getMachineOnlyLabel(onlyMachine) : 'Chọn máy tương thích'
-  }
-
-  return 'Chọn máy tương thích'
-}
-
-const autoSelectMachineIfOnlyOne = (item: CartItemLocal, lineId?: number | null) => {
-  if (!lineId) {
-    item.machineId = null
-    return
-  }
-
-  const machines = getMachinesByLineId(lineId)
-
-  if (machines.length === 1) {
-    const onlyMachine = machines[0]
-
-    if (onlyMachine?.id) {
-      item.machineId = Number(onlyMachine.id)
-      return
-    }
-  }
-
-  item.machineId = null
-}
-
-const onLineChange = (item: CartItemLocal, lineId: number) => {
-  if (!item.id) return
-
-  selectedLineIds.value[item.id] = lineId || 0
-  autoSelectMachineIfOnlyOne(item, lineId)
-}
-
-const onMachineChange = (item: CartItemLocal, machineId: number) => {
-  item.machineId = machineId || null
-
-  if (!item.id || !machineId) return
-
-  const machine = machineOptions.value.find((machine) => Number(machine.id) === Number(machineId))
-
-  if (machine?.lineId) {
-    selectedLineIds.value[item.id] = Number(machine.lineId)
-  }
-}
-
-
-const syncSelectedLinesFromMachines = () => {
-  ;(cartStore.items as CartItemLocal[]).forEach((item) => {
-    if (!item.id || !item.machineId) return
-
-    const selectedMachine = machineOptions.value.find(
-      (machine) => Number(machine.id) === Number(item.machineId),
-    )
-
-    if (selectedMachine?.lineId) {
-      selectedLineIds.value[item.id] = Number(selectedMachine.lineId)
-    }
-  })
+const getSelectedMachineIds = (item: CartItemLocal): number[] => {
+  if (!item.id) return []
+  return selectedMachineIds.value[item.id] || []
 }
 
 // ========================
@@ -861,7 +663,8 @@ const removeItem = (itemId: number) => {
 
   delete localQuantities.value[itemId]
   delete timeUsedLocal.value[itemId]
-  delete selectedLineIds.value[itemId]
+  delete selectedAreaPartIds.value[itemId]
+  delete selectedMachineIds.value[itemId]
 }
 
 // ========================
@@ -888,14 +691,12 @@ const validateBeforeSubmit = (): boolean => {
 
   const missingNote = items.filter((item) => !item.note?.trim())
   const missingTime = items.filter((item) => !item.timeUsed?.trim())
-  const missingLine = items.filter((item) => !getSelectedLineId(item))
-  const missingMachine = items.filter((item) => shouldRequireMachine(item) && !item.machineId)
+  const missingAreaPart = items.filter((item) => getSelectedAreaPartIds(item).length === 0)
 
   const hasError =
     missingNote.length > 0 ||
     missingTime.length > 0 ||
-    missingLine.length > 0 ||
-    missingMachine.length > 0
+    missingAreaPart.length > 0
 
   if (!hasError) {
     showUsageError.value = false
@@ -916,15 +717,9 @@ const validateBeforeSubmit = (): boolean => {
     })
   }
 
-  if (missingLine.length > 0) {
-    toast.error('Thiếu vị trí sử dụng', {
-      description: missingLine.map(getItemLabel).join(', '),
-    })
-  }
-
-  if (missingMachine.length > 0) {
-    toast.error('Thiếu máy tương thích', {
-      description: missingMachine.map(getItemLabel).join(', '),
+  if (missingAreaPart.length > 0) {
+    toast.error('Thiếu khu vực', {
+      description: missingAreaPart.map(getItemLabel).join(', '),
     })
   }
 
@@ -935,24 +730,31 @@ const validateBeforeSubmit = (): boolean => {
 // Submit
 // ========================
 const placeOrder = async () => {
-  if (orderStore.loading) return
+  if (isSubmitting.value || orderStore.loading) return
   if (cartStore.isEmpty) return
 
-  if (!validateBeforeSubmit()) return
+  isSubmitting.value = true
+
+  if (!validateBeforeSubmit()) {
+    isSubmitting.value = false
+    return
+  }
 
   orderStore.setLoading(true)
 
   try {
     const orderData = {
       nameWorker: nameWorker.value.trim(),
-      itemIds: (cartStore.items as CartItemLocal[]).map((item) => ({
-        itemId: Number(item.id),
-        orderQty: getLocalQuantity(Number(item.id)),
-        note: item.note?.trim() || '',
-        timeUsed: item.timeUsed?.trim() || '',
-        lineId: Number(getSelectedLineId(item)),
-        machineId: shouldRequireMachine(item) ? Number(item.machineId) : null,
-      })),
+      itemIds: (cartStore.items as CartItemLocal[]).map((item) => {
+        return {
+          itemId: Number(item.id),
+          orderQty: getLocalQuantity(Number(item.id)),
+          note: item.note?.trim() || '',
+          timeUsed: item.timeUsed?.trim() || '',
+          machineId: getSelectedMachineIds(item),
+          areaPartId: getSelectedAreaPartIds(item)
+        }
+      }),
     }
 
     const newOrder = await orderAPI.create(orderData)
@@ -972,7 +774,8 @@ const placeOrder = async () => {
     showUsageError.value = false
     timeUsedLocal.value = {}
     localQuantities.value = {}
-    selectedLineIds.value = {}
+    selectedAreaPartIds.value = {}
+    selectedMachineIds.value = {}
 
     toast.success('Đặt hàng thành công!')
 
@@ -985,6 +788,7 @@ const placeOrder = async () => {
     })
   } finally {
     orderStore.setLoading(false)
+    isSubmitting.value = false
   }
 }
 
@@ -1010,9 +814,15 @@ watch(
       }
     })
 
-    Object.keys(selectedLineIds.value).forEach((key) => {
+    Object.keys(selectedAreaPartIds.value).forEach((key) => {
       if (!currentIds.has(Number(key))) {
-        delete selectedLineIds.value[Number(key)]
+        delete selectedAreaPartIds.value[Number(key)]
+      }
+    })
+
+    Object.keys(selectedMachineIds.value).forEach((key) => {
+      if (!currentIds.has(Number(key))) {
+        delete selectedMachineIds.value[Number(key)]
       }
     })
 
@@ -1048,18 +858,12 @@ watch(
         localQuantities.value[item.id] = item.quantity || 1
       }
 
-      if (!selectedLineIds.value[item.id] && item.machineId) {
-        const selectedMachine = machineOptions.value.find(
-          (machine) => Number(machine.id) === Number(item.machineId),
-        )
-
-        if (selectedMachine?.lineId) {
-          selectedLineIds.value[item.id] = Number(selectedMachine.lineId)
-        }
+      if (!selectedAreaPartIds.value[item.id]) {
+        selectedAreaPartIds.value[item.id] = item.areaPartIds || []
       }
-
-      if (selectedLineIds.value[item.id] && !item.machineId) {
-        autoSelectMachineIfOnlyOne(item, selectedLineIds.value[item.id])
+      
+      if (!selectedMachineIds.value[item.id]) {
+        selectedMachineIds.value[item.id] = item.machineId || []
       }
     })
   },
@@ -1073,6 +877,21 @@ onMounted(() => {
   fetchMachines()
 })
 </script>
+
+<style scoped>
+:deep(.multiselect-tag) {
+  background: #4988C4;
+}
+:deep(.multiselect.is-active) {
+  box-shadow: 0 0 0 2px rgba(73, 136, 196, 0.2);
+}
+:deep(.multiselect-option.is-selected) {
+  background: #4988C4;
+}
+:deep(.multiselect-option.is-selected.is-pointed) {
+  background: #3b74a8;
+}
+</style>
 
 <style scoped>
 input:focus,

@@ -16,8 +16,14 @@
           :class="getActualQty(detail) === 0 ? 'bg-red-50 opacity-60' : 'bg-slate-50'"
         >
           <img
-            :src="detail.item?.picture?.[0] || '/placeholder-image.jpg'"
+            :src="getItemImageUrl(detail.item?.picture?.[0], 128)"
+            :alt="detail.item?.eng?.partname || detail.item?.com?.name || 'Vật tư'"
+            width="48"
+            height="48"
+            loading="lazy"
+            decoding="async"
             class="w-12 h-12 rounded-lg object-cover border"
+            @error="handleImageError"
           />
           <div class="flex-1 min-w-0">
             <p class="font-medium text-sm truncate">
@@ -40,7 +46,7 @@
             <Badge :variant="detail.item?.stockQty === 0 ? 'destructive' : 'secondary'">
               x{{ getActualQty(detail) }}
             </Badge>
-            <p v-if="isInCart(detail.item.id) && detail.item?.stockQty > 0" class="text-xs text-amber-600 mt-1">
+            <p v-if="isInCart(detail.item.id) && Number(detail.item?.stockQty ?? 0) > 0" class="text-xs text-amber-600 mt-1">
               +{{ getActualQty(detail) }} (đang có {{ getCartQty(detail.item.id) }})
             </p>
           </div>
@@ -82,6 +88,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useCartStore } from '@/stores/cartStore'
+import { getItemImageUrl, handleImageError } from '@/utils/imageUtils'
 import { ShoppingCart } from 'lucide-vue-next'
 import type { Order } from '@/types/order.types'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
@@ -116,9 +123,10 @@ const getActualQty = (detail: Order['orderDetails'][number]) => {
 
 const availableDetails = computed(() =>
   props.order?.orderDetails?.filter(d => {
-    if (!d.item || d.item.stockQty === 0) return false
+    const stock = Number(d.item?.stockQty ?? 0)
+    if (!d.item || stock === 0) return false
     const cartQty = getCartQty(d.item.id)
-    return d.item.stockQty - cartQty > 0  // còn chỗ để thêm
+    return stock - cartQty > 0  // còn chỗ để thêm
   }) ?? []
 )
 
@@ -141,9 +149,10 @@ const confirm = () => {
 
   const availableItems = props.order.orderDetails
   .filter(d => {
-    if (!d.item || d.item.stockQty === 0) return false
+    const stock = Number(d.item?.stockQty ?? 0)
+    if (!d.item || stock === 0) return false
     const cartQty = getCartQty(d.item.id)
-    return d.item.stockQty - cartQty > 0  // giống availableDetails
+    return stock - cartQty > 0  // giống availableDetails
   })
   .map(d => ({
     ...d,

@@ -143,6 +143,10 @@
                 <Package class="h-4 w-4" style="color: #4988C4;" />
                 <span class="font-medium">{{ order.orderDetails?.length || 0 }} vật tư</span>
               </div>
+              <div v-if="order.totalPrice" class="flex items-center gap-2" style="color: #6b7280;">
+                <span class="font-medium">Tổng tiền:</span>
+                <span class="font-bold text-blue-600">{{ formatPrice(order.totalPrice) }}</span>
+              </div>
             </div>
 
             <!-- Show worker name if available -->
@@ -566,6 +570,17 @@ const formatDate = (dateString: string): string => {
     month: 'long',
     day: 'numeric'
   })
+}
+
+const formatPrice = (price?: string | number | null): string => {
+  if (price === null || price === undefined || price === '') return '0 ₫'
+  const numericPrice = typeof price === 'number' ? price : Number.parseFloat(price)
+  if (Number.isNaN(numericPrice)) return String(price)
+  
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND',
+  }).format(numericPrice)
 }
 
 const getStatusLabel = (status: string): string => {

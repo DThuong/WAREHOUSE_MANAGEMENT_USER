@@ -53,8 +53,10 @@ export const useUserStore = defineStore('user', {
       return (role: string) => state.users.filter(u => u.role === role)
     },
     
+    // Lọc theo departmentId (cấu trúc mới) thay cho chuỗi `department` đã bỏ
     getUsersByDepartment: (state) => {
-      return (department: string) => state.users.filter(u => u.department === department)
+      return (departmentId: number) =>
+        state.users.filter(u => Number(u.departmentId) === Number(departmentId))
     },
   },
 

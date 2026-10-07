@@ -19,5 +19,15 @@ export default defineConfigWithVueTs(
   ...pluginVue.configs['flat/essential'],
   vueTsConfigs.recommended,
 
+  // components/ui/* là code sinh từ shadcn-vue (Button, Card, Dialog...),
+  // giữ tên 1 từ để khớp tài liệu & dễ cập nhật bằng CLI.
+  {
+    name: 'app/shadcn-ui',
+    files: ['src/components/ui/**/*.vue'],
+    rules: {
+      'vue/multi-word-component-names': 'off',
+    },
+  },
+
   skipFormatting,
 )

@@ -48,6 +48,13 @@
                 <p class="order-meta">
                   Người Nhận: {{ orderStore.currentOrder.nameWorker }}
                 </p>
+                <div v-if="orderStore.currentOrder.accountInfo?.departmentName" class="order-org flex items-center gap-2 mt-2">
+                  <span class="text-sm font-medium text-slate-700 bg-blue-50 px-2 py-1 rounded-md border border-blue-100 shadow-sm">
+                    Bộ phận: {{ orderStore.currentOrder.accountInfo.departmentName }}
+                    <template v-if="orderStore.currentOrder.accountInfo.factoryPartName"> - {{ orderStore.currentOrder.accountInfo.factoryPartName }}</template>
+                    <template v-if="orderStore.currentOrder.accountInfo.plantName"> - {{ orderStore.currentOrder.accountInfo.plantName }}</template>
+                  </span>
+                </div>
               </div>
             </div>
           </CardContent>
@@ -120,9 +127,16 @@
                 class="order-item"
               >
                 <img
-                  :src="getItemImageUrl(detail.item.picture?.[0])"
+                  :src="getItemImageUrl(detail.item.picture?.[0], 256)"
+                  :srcset="getImageSrcSet('Item', detail.item.picture?.[0], [128, 256, 512, 768])"
+                  sizes="(max-width: 640px) 100vw, 120px"
                   :alt="getItemName(detail.item)"
+                  width="120"
+                  height="120"
+                  loading="lazy"
+                  decoding="async"
                   class="item-image"
+                  @error="handleImageError"
                 />
 
                 <div class="item-details">
@@ -163,9 +177,16 @@
                         <MapPin class="h-3.5 w-3.5" />
                         Vị trí
                       </span>
-                      <span class="usage-value usage-value-strong">
-                        {{ getMachineLineLabel(detail as OrderDetailLocal) }}
-                      </span>
+                      <div class="usage-value usage-value-strong flex flex-wrap gap-1 justify-end">
+                        <template v-if="getDetailLines(detail).length > 0">
+                          <Badge variant="secondary" v-for="(line, idx) in getDetailLines(detail)" :key="idx" class="text-xs">
+                            {{ getLineName(line) }}
+                          </Badge>
+                        </template>
+                        <template v-else>
+                          {{ getMachineLineLabel(detail as OrderDetailLocal) }}
+                        </template>
+                      </div>
                     </div>
 
                     <div class="usage-row">
@@ -173,12 +194,16 @@
                         <Cpu class="h-3.5 w-3.5" />
                         Máy
                       </span>
-                      <span
-                        class="usage-value"
-                        :class="{ 'usage-value-muted': !detail.machineId }"
-                      >
-                        {{ getMachineLabel(detail as OrderDetailLocal) }}
-                      </span>
+                      <div class="usage-value flex flex-wrap gap-1 justify-end" :class="{ 'usage-value-muted': getDetailMachines(detail).length === 0 }">
+                        <template v-if="getDetailMachines(detail).length > 0">
+                          <Badge variant="secondary" v-for="(machine, idx) in getDetailMachines(detail)" :key="idx" class="text-xs bg-blue-100 text-blue-800 border-none">
+                            {{ getMachineName(machine) }}
+                          </Badge>
+                        </template>
+                        <template v-else>
+                          {{ getMachineLabel(detail as OrderDetailLocal) }}
+                        </template>
+                      </div>
                     </div>
 
                     <div class="usage-row">
@@ -224,9 +249,16 @@
                 @click="openImagePreview(index)"
               >
                 <img
-                  :src="getItemImageUrl(img)"
+                  :src="getOrderImageUrl(img, 384)"
+                  :srcset="getImageSrcSet('Order', img, [256, 384, 512, 768])"
+                  sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 100vw"
                   alt="Order image"
+                  width="384"
+                  height="160"
+                  loading="lazy"
+                  decoding="async"
                   class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                  @error="handleImageError"
                 />
 
                 <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
@@ -254,7 +286,13 @@ import type { Component } from 'vue'
 
 import { useOrderStore } from '@/stores/orderStore'
 import { orderAPI } from '@/services/orderAPI'
-import { getItemImageUrl } from '@/utils/imageUtils'
+import {
+  getItemImageUrl,
+  getOrderImageUrl,
+  getImageSrcSet,
+  handleImageError,
+  PREVIEW_IMAGE_WIDTH,
+} from '@/utils/imageUtils'
 import { OrderStatus } from '@/types/order.types'
 import { toast } from 'vue-sonner'
 
@@ -286,37 +324,45 @@ import {
 // ========================
 // Local Types
 // ========================
-interface LineLocal {
+/**
+ * Cấu trúc MỚI: orderDetail.areaPartsInfo trả về AreaPart
+ * (areaPartName / departmentName / factoryPartName), không còn Line.lineName.
+ */
+interface AreaPartLocal {
   id?: number
-  lineName?: string | null
+  areaPartName?: string | null
+  departmentId?: number | null
+  departmentName?: string | null
+  factoryPartId?: number | null
+  factoryPartName?: string | null
+  /** Tên trường cũ — giữ làm fallback cho đơn cũ trong DB */
   areaPart?: string | null
+  lineName?: string | null
 }
 
 interface MachineLocal {
   id?: number
   machineName?: string | null
-  lineId?: number | null
-
-  // Đúng theo type của bạn: machine bên trong orderDetail có object line
-  line?: LineLocal | null
-
-  // Một số API có thể trả lineName riêng
-  lineName?: string | null
+  areaPartId?: number | null
+  areaPartName?: string | null
+  departmentId?: number | null
+  departmentName?: string | null
 }
 
 interface ItemData {
-  picture?: string[]
+  // Theo ReadItemDto trong swagger, các field này đều nullable
+  picture?: string[] | null
   type: string
-  unit: string
-  price?: string | number
+  unit: string | null
+  price?: string | number | null
   eng?: {
     partname?: string
     description?: string
-  }
+  } | null
   com?: {
     name?: string
     specifications?: string
-  }
+  } | null
 }
 
 interface OrderDetailLocal {
@@ -327,8 +373,10 @@ interface OrderDetailLocal {
   item: ItemData
   note?: string | null
   timeUsed?: string | null
-  machineId?: number | null
-  machine?: MachineLocal | null
+  areaPartIds?: number[]
+  machineIds?: number[]
+  machinesInfo?: MachineLocal[] | null
+  areaPartsInfo?: AreaPartLocal[] | null
 }
 
 interface TimelineStage {
@@ -353,7 +401,7 @@ const previewOpen = ref(false)
 const previewInitialIndex = ref(0)
 
 const fullImageUrls = computed(() => {
-  return orderStore.currentOrder?.image?.map((img) => getItemImageUrl(img)) || []
+  return orderStore.currentOrder?.image?.map((img) => getOrderImageUrl(img, PREVIEW_IMAGE_WIDTH)) || []
 })
 
 const openImagePreview = (index: number) => {
@@ -417,29 +465,61 @@ const getItemTypeLabel = (type: string): string => {
 }
 
 const getMachineLineLabel = (detail: OrderDetailLocal): string => {
-  const machine = detail.machine
-
-  if (!machine) return '—'
-
-  const line = machine.line
-
-  const areaPart = line?.areaPart?.trim() || ''
-  const lineName = line?.lineName?.trim() || machine.lineName?.trim() || ''
-
-  if (areaPart && lineName) return `${areaPart} - ${lineName}`
-  if (lineName) return lineName
-  if (areaPart) return areaPart
-  if (machine.lineId) return `Vị trí ID ${machine.lineId}`
-
+  if (detail.areaPartsInfo && Array.isArray(detail.areaPartsInfo) && detail.areaPartsInfo.length > 0) {
+    // Model mới dùng areaPartName; hai tên cũ (areaPart / lineName) giữ lại
+    // làm fallback phòng khi còn đơn cũ trong DB.
+    return detail.areaPartsInfo
+      .map((a: AreaPartLocal) => a.areaPartName || a.areaPart || a.lineName || `Vị trí ID ${a.id}`)
+      .join(', ')
+  }
+  if (detail.areaPartIds && detail.areaPartIds.length > 0) {
+    return `Vị trí ID ${detail.areaPartIds.join(', ')}`
+  }
   return '—'
 }
 
 const getMachineLabel = (detail: OrderDetailLocal): string => {
-  if (!detail.machineId || !detail.machine) {
-    return 'Không có máy'
+  if (detail.machinesInfo && Array.isArray(detail.machinesInfo) && detail.machinesInfo.length > 0) {
+    return detail.machinesInfo.map((m: MachineLocal) => m.machineName || `Máy ID ${m.id}`).join(', ')
   }
+  if (detail.machineIds && detail.machineIds.length > 0) {
+    return `Máy ID ${detail.machineIds.join(', ')}`
+  }
+  return 'Không có máy'
+}
 
-  return detail.machine.machineName?.trim() || `Máy ID ${detail.machineId}`
+const getDetailLines = (detail: OrderDetailLocal): AreaPartLocal[] => {
+  if (Array.isArray(detail.areaPartsInfo) && detail.areaPartsInfo.length > 0) {
+    return detail.areaPartsInfo as AreaPartLocal[]
+  }
+  if (Array.isArray(detail.areaPartIds) && detail.areaPartIds.length > 0) {
+    return detail.areaPartIds.map((id: number) => ({ id }))
+  }
+  return []
+}
+
+const getDetailMachines = (detail: OrderDetailLocal): MachineLocal[] => {
+  if (Array.isArray(detail.machinesInfo) && detail.machinesInfo.length > 0) {
+    return detail.machinesInfo as MachineLocal[]
+  }
+  if (Array.isArray(detail.machineIds) && detail.machineIds.length > 0) {
+    return detail.machineIds.map((id: number) => ({ id }))
+  }
+  return []
+}
+
+const getLineName = (area: AreaPartLocal | null | undefined): string => {
+  // AreaPart mới: hiển thị "TÊN BỘ PHẬN - TÊN KHU VỰC" khi có đủ.
+  const areaName = String(area?.areaPartName || area?.areaPart || area?.lineName || '').trim()
+  const deptName = String(area?.departmentName || '').trim()
+  if (deptName && areaName) return `${deptName} - ${areaName}`
+  if (areaName) return areaName
+  if (deptName) return deptName
+  return `Vị trí ID ${area?.id || '?'}`
+}
+
+const getMachineName = (machine: MachineLocal | null | undefined): string => {
+  return machine?.machineName?.trim() || `Máy ID ${machine?.id || '?'}`
 }
 
 // ========================
@@ -457,7 +537,7 @@ const formatDate = (dateString: string): string => {
   })
 }
 
-const formatPrice = (price?: string | number): string => {
+const formatPrice = (price?: string | number | null): string => {
   if (price === null || price === undefined || price === '') return 'Chưa có giá'
 
   const numericPrice = typeof price === 'number' ? price : Number.parseFloat(price)
