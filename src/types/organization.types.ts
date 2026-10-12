@@ -25,6 +25,12 @@ export interface Machine {
   images?: string[]
 }
 
+// POST /api/Machine
+export interface CreateMachineRequest {
+  machineName: string
+  areaPartId: number
+}
+
 export interface Plant {
   id: number
   plantName: string

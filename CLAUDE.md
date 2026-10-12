@@ -61,6 +61,12 @@ File: `src/views/UserCartView.vue`.
     fallback suy từ machines, rồi **lọc theo areaPart** của user.
 - Submit `placeOrder()` gửi `{ itemId, orderQty, note, timeUsed, lineId, machineId }` cho mỗi item.
   `CreateOrderRequest.itemIds` đã có `lineId` (`types/order.types.ts`).
+- **Máy nhập tay (pending machine)**: ô "Máy tương thích" cho gõ tên máy mới (multiselect
+  `create-option` + `on-create` → `handleCreateMachine`). Máy mới chỉ nằm ở `pendingMachines`
+  (id tạm là số âm) và **chỉ được `POST /api/Machine` `{ machineName, areaPartId }` khi bấm Đặt
+  hàng** (`createPendingMachines()` chạy trước `orderAPI.create`). Chọn 1 khu vực → tự gắn;
+  nhiều khu vực → user chọn khu vực cho từng máy mới (bắt buộc). Trùng tên (không phân biệt
+  hoa/thường) trong khu vực → dùng máy có sẵn; trùng tên + khu vực ở nhiều vật tư → tạo 1 lần.
 - Nếu sau này cần lọc areaPart ở chỗ khác (vd thêm vào giỏ từ Products), tái dùng quy tắc
   so sánh `trim().toUpperCase()` này.
 

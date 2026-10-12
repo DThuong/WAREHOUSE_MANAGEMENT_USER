@@ -153,24 +153,68 @@
                       mode="tags"
                       :close-on-select="false"
                       :searchable="true"
-                      placeholder="Chọn một hoặc nhiều máy..."
+                      placeholder="Chọn máy hoặc gõ tên máy mới..."
                       class="min-h-[2.65rem]"
+                      :create-option="true"
+                      :append-new-option="false"
+                      :on-create="(option: MultiselectCreatedOption) => handleCreateMachine(item.id!, option)"
                       :disabled="machineLoading || getSelectedAreaPartIds(item).length === 0"
                     >
                       <template #option="{ option }">
                         <div class="flex items-center gap-2 cursor-pointer w-full">
                           <input 
+                            v-if="!option.__CREATE__"
                             type="checkbox" 
                             :checked="selectedMachineIds[item.id!]?.includes(option.value)"
                             class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer pointer-events-none"
                           />
-                          <span>{{ option.label }}</span>
+                          <Plus v-else class="h-4 w-4 text-emerald-600" />
+                          <span v-if="option.__CREATE__">
+                            Thêm máy mới: <strong>{{ option.label }}</strong>
+                          </span>
+                          <span v-else>{{ option.label }}</span>
+                          <span v-if="option.isNew" class="new-machine-badge">Mới</span>
                         </div>
                       </template>
                     </Multiselect>
 
+                    <!-- Máy nhập tay: chỉ được tạo trên hệ thống khi bấm Đặt hàng -->
+                    <div
+                      v-if="getPendingMachines(item.id!).length > 0"
+                      class="pending-machines"
+                    >
+                      <div
+                        v-for="pm in getPendingMachines(item.id!)"
+                        :key="pm.tempId"
+                        class="pending-machine-row"
+                      >
+                        <span class="new-machine-badge">Mới</span>
+                        <span class="pending-machine-name">{{ pm.machineName }}</span>
+
+                        <select
+                          v-if="getSelectedAreaPartIds(item).length > 1"
+                          v-model="pm.areaPartId"
+                          class="pending-area-select"
+                          :class="{ 'field-error': showUsageError && !pm.areaPartId }"
+                        >
+                          <option :value="null" disabled>Máy này thuộc khu vực nào?</option>
+                          <option
+                            v-for="areaId in getSelectedAreaPartIds(item)"
+                            :key="areaId"
+                            :value="areaId"
+                          >
+                            {{ getAreaPartName(areaId) }}
+                          </option>
+                        </select>
+                        <span v-else class="pending-area-label">
+                          → {{ getAreaPartName(pm.areaPartId) }}
+                        </span>
+                      </div>
+                    </div>
+
                     <p class="field-hint">
-                      Bạn có thể tìm kiếm theo tên máy.
+                      Tìm theo tên máy. Không có máy cần tìm? Gõ tên rồi nhấn Enter để thêm —
+                      máy mới sẽ được lưu vào hệ thống khi bạn bấm Đặt hàng.
                     </p>
                   </div>
 
@@ -400,6 +444,23 @@ interface TimeLocal {
   unit: string
 }
 
+/**
+ * Máy người dùng gõ tay trong giỏ. Chưa tồn tại trên hệ thống:
+ * chỉ được POST /api/Machine khi bấm Đặt hàng. `tempId` là số âm để
+ * không bao giờ trùng id thật và nằm chung được trong selectedMachineIds.
+ */
+interface PendingMachine {
+  tempId: number
+  machineName: string
+  areaPartId: number | null
+}
+
+/** Option mà @vueform/multiselect truyền vào onCreate. */
+interface MultiselectCreatedOption {
+  value?: unknown
+  label?: unknown
+}
+
 // ========================
 // Stores & Router
 // ========================
@@ -468,13 +529,218 @@ const getFormattedMachineOptions = (itemId: number) => {
   const selectedAreas = selectedAreaPartIds.value[itemId] || []
   if (selectedAreas.length === 0) return []
 
-  return visibleMachines.value
+  const existing = visibleMachines.value
     .filter(m => selectedAreas.includes(m.areaPartId))
     .map(m => ({
       value: m.id,
-      label: m.machineName || `Máy ID ${m.id}`
+      label: m.machineName || `Máy ID ${m.id}`,
+      isNew: false,
     }))
+
+  // Máy gõ tay phải nằm trong options thì tag mới hiển thị được
+  const pending = getPendingMachines(itemId).map(p => ({
+    value: p.tempId,
+    label: p.machineName,
+    isNew: true,
+  }))
+
+  return [...existing, ...pending]
 }
+
+// ========================
+// Máy nhập tay (pending)
+// ========================
+const pendingMachines = ref<Record<number, PendingMachine[]>>({})
+let nextTempMachineId = -1
+
+const cleanMachineName = (name: string): string => name.trim().replace(/\s+/g, ' ')
+const normalizeMachineName = (name: string): string => cleanMachineName(name).toLowerCase()
+
+const getPendingMachines = (itemId: number): PendingMachine[] => {
+  return pendingMachines.value[itemId] || []
+}
+
+const getAreaPartName = (areaPartId: number | null): string => {
+  if (areaPartId === null) return '—'
+  const area = areaPartOptions.value.find(a => a.id === areaPartId)
+  return area?.areaPartName || `Khu vực ID ${areaPartId}`
+}
+
+/**
+ * Gọi khi người dùng gõ tên máy không có trong danh sách rồi Enter.
+ * Trả về option để multiselect chọn, hoặc false để bỏ qua.
+ */
+const handleCreateMachine = (itemId: number, option: MultiselectCreatedOption) => {
+  const name = cleanMachineName(String(option.label ?? option.value ?? ''))
+  if (!name) return false
+
+  const areas = selectedAreaPartIds.value[itemId] || []
+  if (areas.length === 0) {
+    toast.warning('Vui lòng chọn khu vực trước khi thêm máy')
+    return false
+  }
+
+  const key = normalizeMachineName(name)
+  const selected = selectedMachineIds.value[itemId] || []
+
+  // Đã có máy trùng tên (không phân biệt hoa/thường) trong khu vực đang chọn → dùng máy đó
+  const existing = visibleMachines.value.find(
+    m => areas.includes(m.areaPartId) && normalizeMachineName(m.machineName || '') === key,
+  )
+  if (existing) {
+    if (selected.includes(existing.id)) {
+      toast.info(`Máy "${existing.machineName}" đã được chọn`)
+      return false
+    }
+    toast.info(`Máy "${existing.machineName}" đã có sẵn — đã chọn máy này`)
+    return { value: existing.id, label: existing.machineName, isNew: false }
+  }
+
+  // Đã gõ tay tên này cho vật tư này rồi
+  const list = pendingMachines.value[itemId] || []
+  if (list.some(p => normalizeMachineName(p.machineName) === key)) {
+    toast.info(`Máy "${name}" đã được thêm`)
+    return false
+  }
+
+  const pending: PendingMachine = {
+    tempId: nextTempMachineId--,
+    machineName: name,
+    // 1 khu vực → gắn luôn; nhiều khu vực → để người dùng chọn
+    areaPartId: areas.length === 1 ? (areas[0] ?? null) : null,
+  }
+  pendingMachines.value[itemId] = [...list, pending]
+
+  return { value: pending.tempId, label: pending.machineName, isNew: true }
+}
+
+/**
+ * Tạo các máy nhập tay trên hệ thống (POST /api/Machine) rồi thay tempId
+ * bằng id thật trong lựa chọn. Máy trùng tên + khu vực ở nhiều vật tư chỉ tạo 1 lần.
+ * Máy nào tạo thành công thì được giữ lại kể cả khi máy khác lỗi, để bấm
+ * Đặt hàng lại không bị tạo trùng.
+ */
+const createPendingMachines = async (): Promise<void> => {
+  const groups = new Map<
+    string,
+    { machineName: string; areaPartId: number; refs: { itemId: number; tempId: number }[] }
+  >()
+
+  Object.entries(pendingMachines.value).forEach(([itemKey, list]) => {
+    const itemId = Number(itemKey)
+    list.forEach(p => {
+      if (p.areaPartId === null) return
+      const key = `${p.areaPartId}|${normalizeMachineName(p.machineName)}`
+      const group = groups.get(key) ?? {
+        machineName: p.machineName,
+        areaPartId: p.areaPartId,
+        refs: [],
+      }
+      group.refs.push({ itemId, tempId: p.tempId })
+      groups.set(key, group)
+    })
+  })
+
+  if (groups.size === 0) return
+
+  const entries = [...groups.values()]
+
+  const results = await Promise.allSettled(
+    entries.map(async (g): Promise<Machine> => {
+      const existing = machineOptions.value.find(
+        m =>
+          m.areaPartId === g.areaPartId &&
+          normalizeMachineName(m.machineName || '') === normalizeMachineName(g.machineName),
+      )
+      if (existing) return existing
+
+      const created = await machineAPI.create({
+        machineName: g.machineName,
+        areaPartId: g.areaPartId,
+      })
+      if (!created?.id) {
+        throw new Error(`Server không trả về máy "${g.machineName}"`)
+      }
+      return created
+    }),
+  )
+
+  const failed: string[] = []
+
+  results.forEach((result, index) => {
+    const group = entries[index]
+    if (!group) return
+
+    if (result.status === 'rejected') {
+      failed.push(group.machineName)
+      return
+    }
+
+    const machine: Machine = {
+      ...result.value,
+      machineName: result.value.machineName || group.machineName,
+      areaPartId: result.value.areaPartId ?? group.areaPartId,
+    }
+
+    if (!machineOptions.value.some(m => m.id === machine.id)) {
+      machineOptions.value.push(machine)
+    }
+
+    group.refs.forEach(({ itemId, tempId }) => {
+      pendingMachines.value[itemId] = getPendingMachines(itemId).filter(p => p.tempId !== tempId)
+      const ids = (selectedMachineIds.value[itemId] || []).map(id => (id === tempId ? machine.id : id))
+      selectedMachineIds.value[itemId] = [...new Set(ids)]
+    })
+  })
+
+  if (failed.length > 0) {
+    throw new Error(`Không tạo được máy: ${failed.join(', ')}`)
+  }
+}
+
+// Bỏ chọn tag máy mới → bỏ luôn khỏi danh sách chờ tạo
+watch(
+  selectedMachineIds,
+  (selection) => {
+    Object.keys(pendingMachines.value).forEach((key) => {
+      const itemId = Number(key)
+      const ids = selection[itemId] || []
+      const list = pendingMachines.value[itemId] || []
+      const kept = list.filter(p => ids.includes(p.tempId))
+      if (kept.length !== list.length) pendingMachines.value[itemId] = kept
+    })
+  },
+  { deep: true },
+)
+
+// Đổi khu vực → giữ máy mới hợp lệ, bỏ chọn máy có sẵn không còn thuộc khu vực đã chọn
+watch(
+  selectedAreaPartIds,
+  (selection) => {
+    Object.entries(selection).forEach(([key, areas]) => {
+      const itemId = Number(key)
+
+      getPendingMachines(itemId).forEach((p) => {
+        if (areas.length === 1) {
+          p.areaPartId = areas[0] ?? null
+        } else if (p.areaPartId !== null && !areas.includes(p.areaPartId)) {
+          p.areaPartId = null
+        }
+      })
+
+      const selectedIds = selectedMachineIds.value[itemId]
+      if (!selectedIds?.length || machineOptions.value.length === 0) return
+
+      const kept = selectedIds.filter((id) => {
+        if (id < 0) return true
+        const machine = machineOptions.value.find(m => m.id === id)
+        return !machine || areas.includes(machine.areaPartId)
+      })
+      if (kept.length !== selectedIds.length) selectedMachineIds.value[itemId] = kept
+    })
+  },
+  { deep: true },
+)
 
 // ========================
 // Time Options
@@ -665,6 +931,7 @@ const removeItem = (itemId: number) => {
   delete timeUsedLocal.value[itemId]
   delete selectedAreaPartIds.value[itemId]
   delete selectedMachineIds.value[itemId]
+  delete pendingMachines.value[itemId]
 }
 
 // ========================
@@ -692,11 +959,19 @@ const validateBeforeSubmit = (): boolean => {
   const missingNote = items.filter((item) => !item.note?.trim())
   const missingTime = items.filter((item) => !item.timeUsed?.trim())
   const missingAreaPart = items.filter((item) => getSelectedAreaPartIds(item).length === 0)
+  const missingNewMachineArea = items.filter((item) => {
+    if (!item.id) return false
+    const areas = getSelectedAreaPartIds(item)
+    return getPendingMachines(item.id).some(
+      (p) => p.areaPartId === null || !areas.includes(p.areaPartId),
+    )
+  })
 
   const hasError =
     missingNote.length > 0 ||
     missingTime.length > 0 ||
-    missingAreaPart.length > 0
+    missingAreaPart.length > 0 ||
+    missingNewMachineArea.length > 0
 
   if (!hasError) {
     showUsageError.value = false
@@ -723,6 +998,12 @@ const validateBeforeSubmit = (): boolean => {
     })
   }
 
+  if (missingNewMachineArea.length > 0) {
+    toast.error('Chưa chọn khu vực cho máy mới', {
+      description: missingNewMachineArea.map(getItemLabel).join(', '),
+    })
+  }
+
   return false
 }
 
@@ -743,6 +1024,9 @@ const placeOrder = async () => {
   orderStore.setLoading(true)
 
   try {
+    // Tạo máy nhập tay trước, để đơn hàng gửi được id máy thật
+    await createPendingMachines()
+
     const orderData = {
       nameWorker: nameWorker.value.trim(),
       itemIds: (cartStore.items as CartItemLocal[]).map((item) => {
@@ -751,7 +1035,7 @@ const placeOrder = async () => {
           orderQty: getLocalQuantity(Number(item.id)),
           note: item.note?.trim() || '',
           timeUsed: item.timeUsed?.trim() || '',
-          machineId: getSelectedMachineIds(item),
+          machineId: getSelectedMachineIds(item).filter((id) => id > 0),
           areaPartId: getSelectedAreaPartIds(item)
         }
       }),
@@ -776,6 +1060,7 @@ const placeOrder = async () => {
     localQuantities.value = {}
     selectedAreaPartIds.value = {}
     selectedMachineIds.value = {}
+    pendingMachines.value = {}
 
     toast.success('Đặt hàng thành công!')
 
@@ -823,6 +1108,12 @@ watch(
     Object.keys(selectedMachineIds.value).forEach((key) => {
       if (!currentIds.has(Number(key))) {
         delete selectedMachineIds.value[Number(key)]
+      }
+    })
+
+    Object.keys(pendingMachines.value).forEach((key) => {
+      if (!currentIds.has(Number(key))) {
+        delete pendingMachines.value[Number(key)]
       }
     })
 
@@ -1128,6 +1419,62 @@ select:focus,
   color: #2563eb;
   font-size: 0.6875rem;
   font-weight: 800;
+}
+
+.new-machine-badge {
+  flex-shrink: 0;
+  padding: 0.05rem 0.4rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: #047857;
+  background: #d1fae5;
+  border-radius: 999px;
+}
+
+.pending-machines {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  margin-top: 0.375rem;
+}
+
+.pending-machine-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.8125rem;
+  background: #f0fdf4;
+  border: 1px dashed #6ee7b7;
+  border-radius: 10px;
+}
+
+.pending-machine-name {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.pending-area-label {
+  color: #475569;
+}
+
+.pending-area-select {
+  margin-left: auto;
+  min-width: 12rem;
+  height: 2rem;
+  padding: 0 0.5rem;
+  font-size: 0.8125rem;
+  background: white;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+}
+
+@media (max-width: 640px) {
+  .pending-area-select {
+    width: 100%;
+    margin-left: 0;
+  }
 }
 
 .field-hint-success {

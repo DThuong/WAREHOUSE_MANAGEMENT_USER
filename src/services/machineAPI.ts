@@ -1,5 +1,5 @@
 import api from './api'
-import type { Machine } from '@/types/organization.types'
+import type { Machine, CreateMachineRequest } from '@/types/organization.types'
 
 export const machineAPI = {
   // GET /api/Machine
@@ -8,6 +8,16 @@ export const machineAPI = {
       return await api.get<Machine[]>(`/api/Machine`)
     } catch (error: unknown) {
       console.error('Error fetching machines:', error)
+      throw error
+    }
+  },
+
+  // POST /api/Machine — body { machineName, areaPartId }
+  create: async (data: CreateMachineRequest): Promise<Machine> => {
+    try {
+      return await api.post<Machine>(`/api/Machine`, data)
+    } catch (error: unknown) {
+      console.error('Error creating machine:', error)
       throw error
     }
   },
