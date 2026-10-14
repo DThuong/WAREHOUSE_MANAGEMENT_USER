@@ -21,7 +21,8 @@ export interface Machine {
   modelMachine?: string
   serialNumber?: string
   dateInput?: string
-  vendor?: string
+  vendor?: string | null
+  isActive?: boolean
   images?: string[]
 }
 

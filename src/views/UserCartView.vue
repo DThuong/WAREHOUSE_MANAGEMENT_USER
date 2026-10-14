@@ -525,15 +525,25 @@ const visibleMachines = computed<Machine[]>(() => {
   )
 })
 
+/** Chỉ máy đang hoạt động mới được chọn (máy vừa tạo chưa có field isActive → coi như active). */
+const isMachineActive = (m: Machine): boolean => m.isActive !== false
+
+/** Nhãn hiển thị: "machineName - serialNumber" để phân biệt các máy trùng tên. */
+const getMachineLabel = (m: Machine): string => {
+  const name = m.machineName?.trim() || `Máy ID ${m.id}`
+  const serial = m.serialNumber?.trim()
+  return serial ? `${name} - ${serial}` : name
+}
+
 const getFormattedMachineOptions = (itemId: number) => {
   const selectedAreas = selectedAreaPartIds.value[itemId] || []
   if (selectedAreas.length === 0) return []
 
   const existing = visibleMachines.value
-    .filter(m => selectedAreas.includes(m.areaPartId))
+    .filter(m => isMachineActive(m) && selectedAreas.includes(m.areaPartId))
     .map(m => ({
       value: m.id,
-      label: m.machineName || `Máy ID ${m.id}`,
+      label: getMachineLabel(m),
       isNew: false,
     }))
 
@@ -584,16 +594,26 @@ const handleCreateMachine = (itemId: number, option: MultiselectCreatedOption) =
   const selected = selectedMachineIds.value[itemId] || []
 
   // Đã có máy trùng tên (không phân biệt hoa/thường) trong khu vực đang chọn → dùng máy đó
-  const existing = visibleMachines.value.find(
-    m => areas.includes(m.areaPartId) && normalizeMachineName(m.machineName || '') === key,
+  const sameName = visibleMachines.value.filter(
+    m =>
+      isMachineActive(m) &&
+      areas.includes(m.areaPartId) &&
+      normalizeMachineName(m.machineName || '') === key,
   )
+  // Nhiều máy cùng tên → không tự đoán, để người dùng chọn theo serial
+  if (sameName.length > 1) {
+    toast.info(`Có ${sameName.length} máy tên "${name}" — vui lòng chọn theo số serial trong danh sách`)
+    return false
+  }
+  const existing = sameName[0]
   if (existing) {
+    const label = getMachineLabel(existing)
     if (selected.includes(existing.id)) {
-      toast.info(`Máy "${existing.machineName}" đã được chọn`)
+      toast.info(`Máy "${label}" đã được chọn`)
       return false
     }
-    toast.info(`Máy "${existing.machineName}" đã có sẵn — đã chọn máy này`)
-    return { value: existing.id, label: existing.machineName, isNew: false }
+    toast.info(`Máy "${label}" đã có sẵn — đã chọn máy này`)
+    return { value: existing.id, label, isNew: false }
   }
 
   // Đã gõ tay tên này cho vật tư này rồi
@@ -649,6 +669,7 @@ const createPendingMachines = async (): Promise<void> => {
     entries.map(async (g): Promise<Machine> => {
       const existing = machineOptions.value.find(
         m =>
+          isMachineActive(m) &&
           m.areaPartId === g.areaPartId &&
           normalizeMachineName(m.machineName || '') === normalizeMachineName(g.machineName),
       )
@@ -767,7 +788,7 @@ const fetchMachines = async () => {
   try {
     const [areasResponse, machinesResponse] = await Promise.all([
       areaPartAPI.getAll().catch(() => [] as AreaPart[]),
-      machineAPI.getAll().catch(() => [] as Machine[]),
+      machineAPI.getAll({ isActive: true }).catch(() => [] as Machine[]),
     ])
 
     areaPartOptions.value = Array.isArray(areasResponse) ? areasResponse : []
